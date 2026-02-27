@@ -33,23 +33,47 @@ export function Layout() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '1rem 1.5rem',
-          background: 'rgba(255, 255, 255, 0.85)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid var(--gray-200)',
-          boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+          padding: '0.75rem 1.5rem',
+          background: 'rgba(255, 255, 255, 0.72)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
         }}
       >
         <Link
           to="/"
           style={{
-            fontSize: '1.25rem',
-            fontWeight: 700,
-            color: 'var(--gray-800)',
             textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
           }}
         >
-          GBA Research Repository 📊
+          <span
+            style={{
+              fontSize: '1.35rem',
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
+              background: 'linear-gradient(135deg, var(--purple-600), var(--purple-400))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            Research Hub
+          </span>
+          <span
+            style={{
+              fontSize: '0.65rem',
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              color: 'var(--gray-400)',
+              borderLeft: '1px solid var(--gray-200)',
+              paddingLeft: '0.5rem',
+            }}
+          >
+            GBA
+          </span>
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>

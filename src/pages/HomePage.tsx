@@ -283,36 +283,85 @@ export function HomePage() {
   return (
     <div style={{ paddingBottom: '2rem' }}>
 
+      {/* ── Hero ──────────────────────────────────────── */}
+      <div
+        style={{
+          textAlign: 'center',
+          padding: '2rem 1rem 1.5rem',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <h1
+          style={{
+            fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
+            fontWeight: 800,
+            letterSpacing: '-0.04em',
+            lineHeight: 1.15,
+            background: 'linear-gradient(135deg, var(--purple-700), var(--purple-400))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            marginBottom: '0.5rem',
+          }}
+        >
+          Research Hub
+        </h1>
+        <p
+          style={{
+            fontSize: '1rem',
+            color: 'var(--gray-500)',
+            maxWidth: 480,
+            margin: '0 auto',
+            lineHeight: 1.6,
+            fontWeight: 400,
+          }}
+        >
+          All GBA research in one place. Browse, search, and share insights across teams and countries.
+        </p>
+      </div>
+
       {/* ── Tabs ──────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.75rem', borderBottom: '2px solid var(--gray-200)' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.25rem',
+          marginBottom: '1.75rem',
+          background: 'var(--gray-100)',
+          borderRadius: 9999,
+          padding: '0.25rem',
+          width: 'fit-content',
+        }}
+      >
         {([
-          { key: 'gba', label: '🏠 GBA Research' },
-          { key: 'external', label: '🌐 External Research' },
-        ] as const).map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => {
-              setActiveTab(tab.key);
-              setSquadFilter('all');
-              setTagFilter('');
-            }}
-            style={{
-              padding: '0.625rem 1.25rem',
-              fontWeight: activeTab === tab.key ? 700 : 500,
-              fontSize: '0.9rem',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              borderBottom: activeTab === tab.key ? '2px solid var(--purple-600)' : '2px solid transparent',
-              color: activeTab === tab.key ? 'var(--purple-700)' : 'var(--gray-500)',
-              marginBottom: '-2px',
-              transition: 'color 0.15s',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+          { key: 'gba', label: 'GBA Research' },
+          { key: 'external', label: 'External Research' },
+        ] as const).map((tab) => {
+          const active = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab.key);
+                setSquadFilter('all');
+                setTagFilter('');
+              }}
+              style={{
+                padding: '0.5rem 1.125rem',
+                fontWeight: active ? 600 : 500,
+                fontSize: '0.85rem',
+                border: 'none',
+                borderRadius: 9999,
+                background: active ? 'white' : 'transparent',
+                boxShadow: active ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                cursor: 'pointer',
+                color: active ? 'var(--purple-700)' : 'var(--gray-500)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       <div
@@ -449,7 +498,7 @@ export function HomePage() {
 
       {latestResearch.length > 0 && activeTab === 'gba' && (
         <section style={{ marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '1rem', color: 'var(--gray-800)' }}>
             Latest Research
           </h2>
           <div
@@ -551,7 +600,7 @@ export function HomePage() {
 
 
       <section>
-        <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '1rem', color: 'var(--gray-800)' }}>
           {activeTab === 'external' ? 'External Research' : 'All Research'}
         </h2>
         <div
