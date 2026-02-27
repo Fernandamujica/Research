@@ -7,7 +7,9 @@ export type Squad =
   | 'troy'
   | 'tout'
   | 'cross-gba'
-  | 'payments-core-infra';
+  | 'payments-core-infra'
+  | 'external'
+  | 'other';
 
 export const SQUAD_LABELS: Record<Squad, string> = {
   'money-in': 'Money In',
@@ -17,6 +19,8 @@ export const SQUAD_LABELS: Record<Squad, string> = {
   'tout': 'TOUT',
   'cross-gba': 'Cross GBA',
   'payments-core-infra': 'Payments & Core Infra',
+  'external': 'External',
+  'other': 'Other',
 };
 
 export const SQUAD_COLORS: Record<Squad, { bg: string; text: string; border: string }> = {
@@ -27,6 +31,8 @@ export const SQUAD_COLORS: Record<Squad, { bg: string; text: string; border: str
   'tout':               { bg: '#F5F3FF', text: '#5B21B6', border: '#C4B5FD' },
   'cross-gba':          { bg: '#FDF2F8', text: '#9D174D', border: '#F9A8D4' },
   'payments-core-infra':{ bg: '#ECFEFF', text: '#155E75', border: '#67E8F9' },
+  'external':           { bg: '#F0FDF4', text: '#15803D', border: '#86EFAC' },
+  'other':              { bg: '#F9FAFB', text: '#6B7280', border: '#D1D5DB' },
 };
 
 export const RESEARCHERS = [

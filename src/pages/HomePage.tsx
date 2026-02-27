@@ -162,11 +162,15 @@ export function HomePage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const [activeTab, setActiveTab] = useState<'gba' | 'external'>('gba');
   const [search, setSearch] = useState('');
   const [countryFilter, setCountryFilter] = useState<Country | 'all'>('all');
   const [squadFilter, setSquadFilter] = useState<Squad | 'all'>('all');
   const [tagFilter, setTagFilter] = useState<string>('');
   const [suggestionSquad, setSuggestionSquad] = useState<Squad | 'all'>('all');
+
+  const EXTERNAL_SQUADS: Squad[] = ['external', 'other'];
+  const isExternal = (squad?: Squad) => !!squad && EXTERNAL_SQUADS.includes(squad);
 
   const selectTag = useCallback((tag: string) => {
     setTagFilter((prev) => (prev === tag ? '' : tag));
@@ -214,6 +218,7 @@ export function HomePage() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return researches.filter((r) => {
+      const tabMatch = activeTab === 'external' ? isExternal(r.squad) : !isExternal(r.squad);
       const matchCountry = countryFilter === 'all' || r.country === countryFilter;
       const matchSquad = squadFilter === 'all' || r.squad === squadFilter;
       const matchTag = !tagFilter || r.tags.some((t) => t.toLowerCase() === tagFilter.toLowerCase());
@@ -229,9 +234,10 @@ export function HomePage() {
         r.keyLearnings.some((k) => k.toLowerCase().includes(q)) ||
         (r.squad ? SQUAD_LABELS[r.squad].toLowerCase().includes(q) : false) ||
         (r.researcher ? r.researcher.toLowerCase().includes(q) : false);
-      return matchCountry && matchSquad && matchTag && matchSearch;
+      return tabMatch && matchCountry && matchSquad && matchTag && matchSearch;
     });
-  }, [researches, search, countryFilter, squadFilter, tagFilter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [researches, search, countryFilter, squadFilter, tagFilter, activeTab]);
 
   // Suggestions: planned items not yet submitted (compare by title)
   const submittedTitles = useMemo(
@@ -259,8 +265,56 @@ export function HomePage() {
   );
 
 
+  const SQUAD_FILTER_GBA: { value: Squad | 'all'; label: string }[] = [
+    { value: 'all', label: 'All Squads' },
+    ...Object.entries(SQUAD_LABELS)
+      .filter(([k]) => !EXTERNAL_SQUADS.includes(k as Squad))
+      .map(([k, v]) => ({ value: k as Squad, label: v })),
+  ];
+
+  const SQUAD_FILTER_EXTERNAL: { value: Squad | 'all'; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'external', label: 'External' },
+    { value: 'other', label: 'Other' },
+  ];
+
+  const activeSquadFilter = activeTab === 'external' ? SQUAD_FILTER_EXTERNAL : SQUAD_FILTER_GBA;
+
   return (
     <div style={{ paddingBottom: '2rem' }}>
+
+      {/* ── Tabs ──────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.75rem', borderBottom: '2px solid var(--gray-200)' }}>
+        {([
+          { key: 'gba', label: '🏠 GBA Research' },
+          { key: 'external', label: '🌐 External Research' },
+        ] as const).map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => {
+              setActiveTab(tab.key);
+              setSquadFilter('all');
+              setTagFilter('');
+            }}
+            style={{
+              padding: '0.625rem 1.25rem',
+              fontWeight: activeTab === tab.key ? 700 : 500,
+              fontSize: '0.9rem',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              borderBottom: activeTab === tab.key ? '2px solid var(--purple-600)' : '2px solid transparent',
+              color: activeTab === tab.key ? 'var(--purple-700)' : 'var(--gray-500)',
+              marginBottom: '-2px',
+              transition: 'color 0.15s',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div
         style={{
           marginBottom: '1.5rem',
@@ -325,7 +379,7 @@ export function HomePage() {
           marginBottom: '1.5rem',
         }}
       >
-        {SQUAD_FILTER.map((s) => {
+        {activeSquadFilter.map((s) => {
           const isActive = squadFilter === s.value;
           const colors = s.value !== 'all' ? SQUAD_COLORS[s.value as Squad] : null;
           return (
@@ -393,7 +447,7 @@ export function HomePage() {
         </div>
       )}
 
-      {latestResearch.length > 0 && (
+      {latestResearch.length > 0 && activeTab === 'gba' && (
         <section style={{ marginBottom: '2rem' }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem' }}>
             Latest Research
@@ -498,7 +552,7 @@ export function HomePage() {
 
       <section>
         <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem' }}>
-          All Research
+          {activeTab === 'external' ? 'External Research' : 'All Research'}
         </h2>
         <div
           style={{
@@ -645,8 +699,13 @@ export function HomePage() {
         )}
       </section>
 
-      {/* Suggestions — at the bottom */}
-      <section style={{ marginTop: '2.5rem' }}>
+      {/* Suggestions — at the bottom, only on GBA tab */}
+      {activeTab === 'external' && filtered.length === 0 && (
+        <p style={{ color: 'var(--gray-400)', fontSize: '0.875rem', marginTop: '1rem' }}>
+          No external research submitted yet. Upload a research from an external team using "New Research" and select External or Other as the squad.
+        </p>
+      )}
+      <section style={{ marginTop: '2.5rem', display: activeTab === 'external' ? 'none' : undefined }}>
         <div
           style={{
             display: 'flex',
