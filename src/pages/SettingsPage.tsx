@@ -313,28 +313,47 @@ export function SettingsPage() {
         )}
       </section>
 
-      {/* Google Drive Picker */}
-      <section className="card-shadow" style={sectionStyle}>
-        <label style={labelStyle}>Google Drive Picker</label>
+      {/* Google OAuth */}
+      <section className="card-shadow" style={{
+        ...sectionStyle,
+        border: settings.googleClientId?.trim()
+          ? '1px solid var(--gray-200)'
+          : '1px solid var(--gray-200)',
+      }}>
+        <label style={labelStyle}>🔗 Google Docs / Slides Integration</label>
         <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '0.75rem' }}>
-          Connect Google Drive so researchers can pick Slides/Docs directly when submitting.
-          Requires a <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" style={{ color: 'var(--purple-600)' }}>Google Cloud project</a> with
-          the Picker API enabled.
+          Allows the AI to read corporate Google Docs and Slides when submitting research.
+          Researchers sign in with their Google account to authorize reading.
         </p>
+        <ol style={{ fontSize: '0.8rem', color: 'var(--gray-600)', marginBottom: '0.75rem', paddingLeft: '1.25rem', lineHeight: 1.8 }}>
+          <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" style={{ color: 'var(--purple-600)', fontWeight: 600 }}>Google Cloud Console → Credentials</a></li>
+          <li>Create an <strong>OAuth 2.0 Client ID</strong> (Web application type)</li>
+          <li>Add <code style={{ background: 'var(--gray-100)', padding: '0.1rem 0.3rem', borderRadius: 4, fontSize: '0.75rem' }}>https://fernandamujica.github.io</code> to Authorized JavaScript origins</li>
+          <li>Enable <strong>Google Docs API</strong> and <strong>Google Slides API</strong> in the project</li>
+          <li>Paste the Client ID below and click <strong>"Save Settings"</strong></li>
+        </ol>
         <input
           type="text"
           value={settings.googleClientId ?? ''}
           onChange={(e) => setSettings((s) => ({ ...s, googleClientId: e.target.value }))}
-          placeholder="OAuth 2.0 Client ID"
-          style={{ ...inputStyle, marginBottom: '0.5rem' }}
+          placeholder="OAuth 2.0 Client ID (e.g. 123456789.apps.googleusercontent.com)"
+          style={{
+            ...inputStyle,
+            width: '100%',
+            border: settings.googleClientId?.trim()
+              ? '1px solid #16a34a'
+              : '1px solid var(--gray-200)',
+          }}
         />
-        <input
-          type="text"
-          value={settings.googlePickerApiKey ?? ''}
-          onChange={(e) => setSettings((s) => ({ ...s, googlePickerApiKey: e.target.value }))}
-          placeholder="API Key (with Picker API enabled)"
-          style={inputStyle}
-        />
+        {settings.googleClientId?.trim() ? (
+          <p style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '0.5rem', fontWeight: 500 }}>
+            ✓ Client ID configured — Google authentication enabled
+          </p>
+        ) : (
+          <p style={{ fontSize: '0.75rem', color: 'var(--gray-400)', marginTop: '0.5rem' }}>
+            Optional — without this, only public documents and PDF uploads work
+          </p>
+        )}
       </section>
 
       <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'space-between', alignItems: 'center' }}>

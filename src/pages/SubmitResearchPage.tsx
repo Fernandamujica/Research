@@ -11,6 +11,7 @@ import type { PlannedResearch } from '../data/plannedResearch';
 import { extractKeyLearningsFromText, autoFillFromPdf, getApiKey } from '../utils/aiGenerate';
 import { extractPdfText, extractPdfCover } from '../utils/extractPdfText';
 import { getResearchers } from '../utils/settings';
+import { isGoogleLink, getStoredToken, requestGoogleToken, fetchGoogleDocContent, getGoogleClientId } from '../utils/googleAuth';
 
 const COUNTRIES: Country[] = ['brasil', 'mexico', 'usa', 'colombia', 'global'];
 const SQUADS = Object.keys(SQUAD_LABELS) as Squad[];
@@ -316,7 +317,27 @@ export function SubmitResearchPage() {
   const setLearning = (i: number, v: string) =>
     setKeyLearnings((k) => k.map((m, j) => (j === i ? v : m)));
 
-  const fetchDocTextFromUrl = async (url: string): Promise<string> => {
+  const [googleToken, setGoogleToken] = useState<string | null>(getStoredToken);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setAiError('');
+      const token = await requestGoogleToken();
+      setGoogleToken(token);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Google sign-in failed.';
+      setAiError(msg);
+    }
+  };
+
+  const needsGoogleAuth = docUrl.trim() && isGoogleLink(docUrl) && !googleToken && !!getGoogleClientId();
+  const hasGoogleClientId = !!getGoogleClientId();
+
+  const fetchDocTextFromUrl = async (url: string, token: string | null): Promise<string> => {
+    if (isGoogleLink(url) && token) {
+      return fetchGoogleDocContent(url, token);
+    }
+
     const gDocsMatch = url.match(/docs\.google\.com\/document\/d\/([^/]+)/);
     const gSlidesMatch = url.match(/docs\.google\.com\/presentation\/d\/([^/]+)/);
 
@@ -337,7 +358,11 @@ export function SubmitResearchPage() {
       } catch { /* CORS blocked, fall through */ }
     }
 
-    return `[Document URL: ${url}]\nThe AI should analyze this document. URL provided: ${url}`;
+    if (isGoogleLink(url)) {
+      throw new Error('This Google document requires authentication. Click "Sign in with Google" first.');
+    }
+
+    throw new Error('Could not read the document at this URL. Make sure it is publicly accessible.');
   };
 
   const runGeneration = useCallback(async (
@@ -346,6 +371,7 @@ export function SubmitResearchPage() {
     currentTitle: string,
     currentDescription: string,
     currentMethodology: string,
+    token: string | null,
   ) => {
     if (!rawFile && !currentUrl.trim()) {
       setAiError('Upload a PDF or paste a document link first.');
@@ -360,7 +386,7 @@ export function SubmitResearchPage() {
       if (rawFile && rawFile.name.toLowerCase().endsWith('.pdf')) {
         docText = await extractPdfText(rawFile);
       } else if (currentUrl.trim()) {
-        docText = await fetchDocTextFromUrl(currentUrl.trim());
+        docText = await fetchDocTextFromUrl(currentUrl.trim(), token);
       }
 
       if (!docText.trim()) {
@@ -428,8 +454,8 @@ export function SubmitResearchPage() {
   }, []);
 
   const autoGenerateLearnings = useCallback(() => {
-    runGeneration(pptFileObj, docUrl, title, description, methodology);
-  }, [runGeneration, pptFileObj, docUrl, title, description, methodology]);
+    runGeneration(pptFileObj, docUrl, title, description, methodology, googleToken);
+  }, [runGeneration, pptFileObj, docUrl, title, description, methodology, googleToken]);
 
   const handlePptFile = useCallback(
     async (entry: FileEntry, raw: File) => {
@@ -647,7 +673,79 @@ export function SubmitResearchPage() {
             </p>
           )}
 
-          {(pptFile || docUrl.trim()) && (
+          {/* Google Sign-In when a Google link is detected */}
+          {needsGoogleAuth && (
+            <div style={{
+              marginTop: '0.75rem',
+              padding: '0.75rem 1rem',
+              background: '#e8f0fe',
+              borderRadius: 'var(--radius)',
+              border: '1px solid #a8c7fa',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+            }}>
+              <span style={{ fontSize: '1.25rem' }}>🔒</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '0.8rem', color: '#1a73e8', fontWeight: 600, margin: 0 }}>
+                  This is a corporate Google document
+                </p>
+                <p style={{ fontSize: '0.72rem', color: '#5f6368', margin: '0.2rem 0 0' }}>
+                  Sign in with your Google account to allow reading it.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid #dadce0',
+                  background: 'white',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: '#1a73e8',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#34A853" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#FBBC05" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                Sign in with Google
+              </button>
+            </div>
+          )}
+
+          {/* Warning when Google link but no client ID */}
+          {docUrl.trim() && isGoogleLink(docUrl) && !hasGoogleClientId && !pptFile && (
+            <div style={{
+              marginTop: '0.75rem',
+              padding: '0.75rem 1rem',
+              background: '#fffbeb',
+              borderRadius: 'var(--radius)',
+              border: '1px solid #fbbf24',
+              fontSize: '0.8rem',
+              color: '#92400e',
+            }}>
+              ⚠ To read corporate Google documents, configure a <strong>Google OAuth Client ID</strong> in{' '}
+              <a href="#/settings" style={{ color: '#92400e', fontWeight: 600 }}>Settings</a>.
+              <br />
+              <span style={{ fontSize: '0.72rem' }}>
+                Without it, the AI can only read publicly shared documents.
+              </span>
+            </div>
+          )}
+
+          {/* Signed in indicator */}
+          {docUrl.trim() && isGoogleLink(docUrl) && googleToken && (
+            <p style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 500, marginTop: '0.5rem' }}>
+              ✓ Signed in with Google — ready to read the document
+            </p>
+          )}
+
+          {(pptFile || (docUrl.trim() && !needsGoogleAuth)) && (
             <button
               type="button"
               onClick={autoGenerateLearnings}
