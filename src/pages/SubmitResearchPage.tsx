@@ -389,13 +389,13 @@ export function SubmitResearchPage() {
         if (learnings.length > 0) {
           setKeyLearnings(learnings);
         } else {
-          setAiError('Configure a Gemini API key (⚙️ in the header) for smarter auto-fill, or add a description first.');
+          setAiError('Could not extract learnings. Try uploading a text-based PDF or add a description first.');
         }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unexpected error.';
       if (msg === 'NO_API_KEY') {
-        setAiError('Configure a Gemini API key via ⚙️ in the header to enable AI auto-fill.');
+        setAiError('AI error — please try again.');
       } else {
         setAiError(`AI error: ${msg}`);
       }
@@ -762,8 +762,8 @@ export function SubmitResearchPage() {
               <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>Key Learnings (optional)</h2>
               <p style={{ fontSize: '0.75rem', color: 'var(--gray-400)', marginTop: '0.125rem' }}>
                 {aiLoading
-                  ? getApiKey() ? 'Reading PDF with Gemini AI…' : 'Extracting key learnings…'
-                  : getApiKey() ? 'AI fills title, date, team, squad, description, tags & learnings on upload. Edit freely.' : 'Add a Gemini key (⚙️) for smarter auto-fill.'}
+                  ? 'Reading PDF with Gemini AI…'
+                  : 'AI fills title, date, team, squad, description, tags & learnings on upload. Edit freely.'}
               </p>
             </div>
             <button

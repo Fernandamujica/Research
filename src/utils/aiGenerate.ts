@@ -1,12 +1,8 @@
-// ── API key storage ────────────────────────────────────────────────────────
-const LS_KEY = 'gba-gemini-key';
+// ── API key ────────────────────────────────────────────────────────────────
+const DEFAULT_KEY = 'AIzaSyDVRBl6Q8DD3mj3R3qIXgkhkl8FABVLpBk';
 
 export function getApiKey(): string {
-  return localStorage.getItem(LS_KEY) ?? '';
-}
-
-export function setApiKey(key: string) {
-  localStorage.setItem(LS_KEY, key.trim());
+  return DEFAULT_KEY;
 }
 
 // ── Gemini response types ──────────────────────────────────────────────────
