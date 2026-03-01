@@ -413,7 +413,7 @@ export function SubmitResearchPage() {
     []
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const teamFiltered = team.filter((t) => t.trim());
     const tagsFiltered = tags.filter((t) => t.trim());
@@ -437,7 +437,7 @@ export function SubmitResearchPage() {
 
     const filteredLearnings = keyLearnings.filter((k) => k.trim());
 
-    addResearch({
+    await addResearch({
       title: title.trim(),
       description: description.trim(),
       date,

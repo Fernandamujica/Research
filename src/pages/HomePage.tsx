@@ -11,6 +11,14 @@ import {
 } from '../types/research';
 import { PLANNED_RESEARCH, type PlannedResearch } from '../data/plannedResearch';
 import { getResearchers } from '../utils/settings';
+import { db, firebaseEnabled } from '../lib/firebase';
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  doc,
+  setDoc,
+} from 'firebase/firestore';
 
 const SQUADS = Object.keys(SQUAD_LABELS) as Squad[];
 const COUNTRY_LIST = Object.keys(COUNTRY_LABELS) as Country[];
@@ -185,16 +193,33 @@ export function HomePage() {
   const [newResearcher, setNewResearcher] = useState('Yas');
   const [newCountries, setNewCountries] = useState<Country[]>(['brasil']);
 
-  const deleteSuggestion = useCallback((id: string) => {
-    setDeletedIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      localStorage.setItem(LS_DELETED, JSON.stringify([...next]));
-      return next;
+  useEffect(() => {
+    if (!firebaseEnabled || !db) return;
+    const unsub1 = onSnapshot(collection(db, 'suggestions_deleted'), (snap) => {
+      const ids = new Set(snap.docs.map((d) => d.id));
+      setDeletedIds(ids);
     });
+    const unsub2 = onSnapshot(collection(db, 'suggestions_custom'), (snap) => {
+      const items = snap.docs.map((d) => d.data() as PlannedResearch);
+      setCustomSuggestions(items);
+    });
+    return () => { unsub1(); unsub2(); };
   }, []);
 
-  const addSuggestion = useCallback(() => {
+  const deleteSuggestion = useCallback(async (id: string) => {
+    if (firebaseEnabled && db) {
+      await setDoc(doc(db, 'suggestions_deleted', id), { deletedAt: new Date().toISOString() });
+    } else {
+      setDeletedIds((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        localStorage.setItem(LS_DELETED, JSON.stringify([...next]));
+        return next;
+      });
+    }
+  }, []);
+
+  const addSuggestion = useCallback(async () => {
     if (!newTitle.trim()) return;
     const item: PlannedResearch = {
       id: `custom-${Date.now()}`,
@@ -205,11 +230,15 @@ export function HomePage() {
       countries: newCountries.length ? newCountries : ['brasil'],
       tags: [],
     };
-    setCustomSuggestions((prev) => {
-      const next = [item, ...prev];
-      localStorage.setItem(LS_CUSTOM, JSON.stringify(next));
-      return next;
-    });
+    if (firebaseEnabled && db) {
+      await addDoc(collection(db, 'suggestions_custom'), item);
+    } else {
+      setCustomSuggestions((prev) => {
+        const next = [item, ...prev];
+        localStorage.setItem(LS_CUSTOM, JSON.stringify(next));
+        return next;
+      });
+    }
     setNewTitle('');
     setShowAddSuggestion(false);
   }, [newTitle, newSquad, newResearcher, newCountries]);

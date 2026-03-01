@@ -1,6 +1,5 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp, type FirebaseApp } from 'firebase/app';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -11,11 +10,15 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+const hasConfig = !!firebaseConfig.projectId && firebaseConfig.projectId !== 'your-project-id';
 
-// Google Auth provider — we enforce the Nubank domain in the UI,
-// and Firestore security rules enforce it server-side.
-export const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ hd: 'nubank.com.br' });
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
+
+if (hasConfig) {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+}
+
+export { app, db };
+export const firebaseEnabled = hasConfig;

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { useResearch } from '../context/ResearchContext';
 import { COUNTRY_EMOJI, COUNTRY_LABELS, SQUAD_LABELS } from '../types/research';
 import type { Country } from '../types/research';
