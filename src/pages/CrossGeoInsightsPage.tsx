@@ -33,21 +33,27 @@ export function CrossGeoInsightsPage() {
     );
   };
 
+  const getCountryResearchCount = useCallback(
+    (country: Country) => researches.filter((r) => r.country === country).length,
+    [researches]
+  );
+
   const buildContext = useCallback(
-    (countries: Country[]) => {
+    (countries: Country[], maxPerCountry = 10) => {
+      const externalSquads = ['external', 'other'];
       return countries
         .map((country) => {
-          const countryResearches = researches.filter((r) => r.country === country);
+          const countryResearches = researches
+            .filter((r) => r.country === country)
+            .sort((a, b) => (b.date > a.date ? 1 : -1))
+            .slice(0, maxPerCountry);
           if (countryResearches.length === 0) return '';
-          const externalSquads = ['external', 'other'];
           const summaries = countryResearches
-            .map(
-              (r) => {
-                const ext = r.squad && externalSquads.includes(r.squad) ? ' [EXTERNAL]' : '';
-                const squadName = r.squad ? (SQUAD_LABELS[r.squad] ?? r.squad) : 'N/A';
-                return `- "${r.title}"${ext} (${squadName}, ${r.date})\n  Description: ${r.description}\n  Key learnings: ${r.keyLearnings.join('; ')}`;
-              }
-            )
+            .map((r) => {
+              const ext = r.squad && externalSquads.includes(r.squad) ? ' [EXTERNAL]' : '';
+              const squadName = r.squad ? (SQUAD_LABELS[r.squad] ?? r.squad) : 'N/A';
+              return `- "${r.title}"${ext} (${squadName}, ${r.date})\n  Description: ${r.description}\n  Key learnings: ${r.keyLearnings.join('; ')}`;
+            })
             .join('\n');
           return `## ${COUNTRY_LABELS[country]} (${countryResearches.length} studies)\n${summaries}`;
         })
@@ -98,41 +104,44 @@ IMPORTANT formatting rules:
 - Be specific and data-backed where possible
 - Write in a clear, professional tone`;
       } else {
-        const context = buildContext(compareCountries);
-        if (!context) {
-          setError('No research found for the selected countries.');
+        const countriesWithData = compareCountries.filter((c) => getCountryResearchCount(c) > 0);
+        if (countriesWithData.length === 0) {
+          setError('No research found for any of the selected countries.');
           setLoading(false);
           return;
         }
-        const countryEmojis = compareCountries.map((c) => `${COUNTRY_EMOJI[c]} ${COUNTRY_LABELS[c]}`).join(', ');
-        prompt = `You are a senior UX research analyst at Nubank. Compare research findings across ${countryEmojis}${compareTopic ? ` focusing on: "${compareTopic}"` : ''}.
+        if (countriesWithData.length < 2) {
+          const missing = compareCountries.filter((c) => getCountryResearchCount(c) === 0);
+          setError(`Cannot compare: ${missing.map((c) => COUNTRY_LABELS[c]).join(', ')} ha${missing.length === 1 ? 's' : 've'} no research yet. Add research for at least 2 countries to compare.`);
+          setLoading(false);
+          return;
+        }
+        const context = buildContext(countriesWithData, 8);
+        const countryEmojis = countriesWithData.map((c) => `${COUNTRY_EMOJI[c]} ${COUNTRY_LABELS[c]}`).join(' vs ');
+        prompt = `Compare the UX research findings between ${countryEmojis}${compareTopic ? ` with focus on: "${compareTopic}"` : ''}.
 
-Structure your response EXACTLY with these sections:
-
-## 🌎 Overview
-Brief summary of research in each country. Use the country flag emoji (🇧🇷 🇲🇽 🇺🇸 🇨🇴) before each country name.
-
-## 📊 Comparative Table
-A markdown table comparing key findings by country${compareTopic ? ` related to "${compareTopic}"` : ''}. Use flag emojis in column headers.
-
-## 💡 Unique Insights
-What's unique to each country. Group by country using ### with flag emoji.
-
-## 🔗 Cross-Country Patterns
-What's consistent across all countries.
-
-## 🎯 Recommendations
-How to leverage learnings globally.
+Here is the research data for each country:
 
 ${context}
 
-IMPORTANT formatting rules:
-- Always use country flag emojis (🇧🇷 🇲🇽 🇺🇸 🇨🇴) before country names
-- Use ## for main sections, ### for subsections
-- Use **bold** for key terms and findings
-- Use bullet points (- ) for lists
-- Use markdown tables with | syntax
-- Be specific and data-backed`;
+Based ONLY on the research data above, write a structured comparison with these sections:
+
+## 🌎 Overview
+One paragraph per country summarizing their research. Use flag emojis.
+
+## 📊 Comparative Table
+A markdown table comparing key dimensions across the countries. Use flag emojis in column headers.
+
+## 💡 Unique Insights per Country
+Use ### with flag emoji for each country. What stands out in each?
+
+## 🔗 Cross-Country Patterns
+What themes or findings are consistent across countries?
+
+## 🎯 Recommendations
+Actionable recommendations for leveraging these learnings globally.
+
+Use **bold** for key terms, bullet points for lists, and markdown tables with | syntax.`;
       }
 
       const res = await fetch(
@@ -146,11 +155,11 @@ IMPORTANT formatting rules:
           body: JSON.stringify({
             model: 'gemini-2.5-flash',
             messages: [
-              { role: 'system', content: 'You are a senior UX research analyst at Nubank. Write in clear, professional markdown.' },
+              { role: 'system', content: 'You are a senior UX research analyst. Write structured, data-backed markdown analysis.' },
               { role: 'user', content: prompt },
             ],
-            temperature: 0.4,
-            max_tokens: mode === 'compare' ? 4096 : 2048,
+            temperature: 0.3,
+            max_tokens: 8192,
           }),
         }
       );
@@ -276,9 +285,10 @@ IMPORTANT formatting rules:
             <h3 style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.75rem' }}>
               Select countries to compare
             </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
               {COUNTRY_LIST.map((c) => {
                 const active = compareCountries.includes(c);
+                const count = getCountryResearchCount(c);
                 return (
                   <button
                     key={c}
@@ -289,25 +299,37 @@ IMPORTANT formatting rules:
                       borderRadius: 9999,
                       border: active ? 'none' : '1px solid var(--gray-200)',
                       background: active ? 'var(--purple-600)' : 'var(--white)',
-                      color: active ? 'white' : 'var(--gray-700)',
+                      color: active ? 'white' : count === 0 ? 'var(--gray-400)' : 'var(--gray-700)',
                       fontWeight: active ? 500 : 400,
                       fontSize: '0.85rem',
                       cursor: 'pointer',
+                      opacity: count === 0 && !active ? 0.6 : 1,
                     }}
                   >
                     {COUNTRY_EMOJI[c]} {COUNTRY_LABELS[c]}
+                    <span style={{ fontSize: '0.7rem', marginLeft: '0.3rem', opacity: 0.7 }}>({count})</span>
                   </button>
                 );
               })}
             </div>
-            {compareCountries.length > 0 && (
-              <p style={{ fontSize: '0.75rem', color: 'var(--gray-400)', marginBottom: '0.75rem' }}>
-                {compareCountries.map((c) => {
-                  const count = researches.filter((r) => r.country === c).length;
-                  return `${COUNTRY_EMOJI[c]} ${COUNTRY_LABELS[c]}: ${count} studies`;
-                }).join('  ·  ')}
-              </p>
-            )}
+            {compareCountries.length > 0 && (() => {
+              const withData = compareCountries.filter((c) => getCountryResearchCount(c) > 0);
+              const noData = compareCountries.filter((c) => getCountryResearchCount(c) === 0);
+              return (
+                <div style={{ marginBottom: '0.75rem' }}>
+                  {withData.length > 0 && (
+                    <p style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 500, marginBottom: noData.length > 0 ? '0.25rem' : 0 }}>
+                      ✓ {withData.map((c) => `${COUNTRY_EMOJI[c]} ${COUNTRY_LABELS[c]} (${getCountryResearchCount(c)})`).join('  ·  ')}
+                    </p>
+                  )}
+                  {noData.length > 0 && (
+                    <p style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 500 }}>
+                      ✗ {noData.map((c) => `${COUNTRY_EMOJI[c]} ${COUNTRY_LABELS[c]}`).join(', ')} — no research yet
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
             <input
               type="text"
               value={compareTopic}
@@ -328,7 +350,7 @@ IMPORTANT formatting rules:
         <button
           type="button"
           onClick={runAnalysis}
-          disabled={loading || (mode === 'compare' && compareCountries.length < 2)}
+          disabled={loading || (mode === 'compare' && compareCountries.filter((c) => getCountryResearchCount(c) > 0).length < 2)}
           style={{
             padding: '0.625rem 1.5rem',
             borderRadius: 9999,
