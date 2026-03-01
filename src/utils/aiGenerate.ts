@@ -60,18 +60,21 @@ const TOOL_SCHEMA = {
 };
 
 const SYSTEM_PROMPT = `You are a UX Research document parser for Nubank's GBA (Global Banking & Account) team.
-Your job is to extract structured data from research documents.
+Your job is to extract structured data ONLY from the provided document content.
+IMPORTANT: Do NOT invent, assume, or generate any information. Only extract what is explicitly present in the document.
+If a field cannot be found in the document, leave it empty or omit it.
 Always use the extract_research_data tool to return your analysis.
-Be concise and factual. Extract only what is clearly present in the document.
-For tags, use short lowercase terms. For key learnings, write actionable insights.`;
+Be concise and factual. For tags, use short lowercase terms. For key learnings, write actionable insights found in the document.`;
 
-async function callGeminiWithTools(pdfText: string, title: string): Promise<AiFilledFields> {
+async function callGeminiWithTools(pdfText: string): Promise<AiFilledFields> {
   const key = getApiKey();
   if (!key) throw new Error('No Gemini API key configured. Go to Settings to add your key.');
 
-  const context = pdfText.trim()
-    ? `Research document content:\n\n${pdfText.slice(0, 15000)}`
-    : `Research title: "${title}"`;
+  if (!pdfText.trim()) {
+    throw new Error('No document content to analyze. Upload a PDF or paste a document link.');
+  }
+
+  const context = `Research document content:\n\n${pdfText.slice(0, 15000)}`;
 
   const res = await fetch(
     'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
@@ -120,7 +123,7 @@ export async function autoFillFromPdf(params: {
   pdfText: string;
   title: string;
 }): Promise<AiFilledFields> {
-  return callGeminiWithTools(params.pdfText, params.title);
+  return callGeminiWithTools(params.pdfText);
 }
 
 // Local fallback: extractive summarization (no API needed)

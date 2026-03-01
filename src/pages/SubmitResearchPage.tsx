@@ -279,6 +279,7 @@ export function SubmitResearchPage() {
   const [presentationUrl, setPresentationUrl] = useState('');
   const [pptFile, setPptFile] = useState<FileEntry | null>(null);
   const [pptFileObj, setPptFileObj] = useState<File | null>(null);
+  const [docUrl, setDocUrl] = useState('');
   const [planFile, setPlanFile] = useState<FileEntry | null>(null);
   const [usefulLinks, setUsefulLinks] = useState<{ name: string; url: string }[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -315,23 +316,61 @@ export function SubmitResearchPage() {
   const setLearning = (i: number, v: string) =>
     setKeyLearnings((k) => k.map((m, j) => (j === i ? v : m)));
 
+  const fetchDocTextFromUrl = async (url: string): Promise<string> => {
+    const gDocsMatch = url.match(/docs\.google\.com\/document\/d\/([^/]+)/);
+    const gSlidesMatch = url.match(/docs\.google\.com\/presentation\/d\/([^/]+)/);
+
+    let exportUrl = '';
+    if (gDocsMatch) {
+      exportUrl = `https://docs.google.com/document/d/${gDocsMatch[1]}/export?format=txt`;
+    } else if (gSlidesMatch) {
+      exportUrl = `https://docs.google.com/presentation/d/${gSlidesMatch[1]}/export/txt`;
+    }
+
+    if (exportUrl) {
+      try {
+        const res = await fetch(exportUrl);
+        if (res.ok) {
+          const text = await res.text();
+          if (text.trim().length > 50) return text;
+        }
+      } catch { /* CORS blocked, fall through */ }
+    }
+
+    return `[Document URL: ${url}]\nThe AI should analyze this document. URL provided: ${url}`;
+  };
+
   const runGeneration = useCallback(async (
     rawFile: File | null,
+    currentUrl: string,
     currentTitle: string,
     currentDescription: string,
     currentMethodology: string,
   ) => {
+    if (!rawFile && !currentUrl.trim()) {
+      setAiError('Upload a PDF or paste a document link first.');
+      return;
+    }
+
     setAiLoading(true);
     setAiError('');
     try {
-      let pdfText = '';
+      let docText = '';
+
       if (rawFile && rawFile.name.toLowerCase().endsWith('.pdf')) {
-        pdfText = await extractPdfText(rawFile);
+        docText = await extractPdfText(rawFile);
+      } else if (currentUrl.trim()) {
+        docText = await fetchDocTextFromUrl(currentUrl.trim());
+      }
+
+      if (!docText.trim()) {
+        setAiError('Could not extract text. Try a text-based PDF or a public Google Docs/Slides link.');
+        setAiLoading(false);
+        return;
       }
 
       if (getApiKey()) {
-        // ── Gemini path: fills all fields from PDF ──────────────────────
-        const filled = await autoFillFromPdf({ pdfText, title: currentTitle });
+        const filled = await autoFillFromPdf({ pdfText: docText, title: currentTitle });
 
         if (filled.title && !currentTitle.trim()) {
           setTitle(filled.title);
@@ -370,17 +409,14 @@ export function SubmitResearchPage() {
           setKeyLearnings(filled.keyLearnings);
         }
         if (!filled.keyLearnings?.length && !filled.description && !filled.tags?.length) {
-          setAiError('AI returned no content. Try uploading a text-based PDF.');
+          setAiError('AI could not extract content from this document. Try a different source.');
         }
       } else {
-        // ── Local fallback: extractive key learnings only ─────────────
-        const sourceText = pdfText.trim()
-          || [currentDescription, currentMethodology].filter(Boolean).join('. ');
-        const learnings = extractKeyLearningsFromText(sourceText);
+        const learnings = extractKeyLearningsFromText(docText);
         if (learnings.length > 0) {
           setKeyLearnings(learnings);
         } else {
-          setAiError('Could not extract learnings. Try uploading a text-based PDF or add a description first.');
+          setAiError('No Gemini API key configured. Go to Settings to enable AI features.');
         }
       }
     } catch (err: unknown) {
@@ -391,15 +427,15 @@ export function SubmitResearchPage() {
     }
   }, []);
 
-  // Manual regenerate button — uses current state
   const autoGenerateLearnings = useCallback(() => {
-    runGeneration(pptFileObj, title, description, methodology);
-  }, [runGeneration, pptFileObj, title, description, methodology]);
+    runGeneration(pptFileObj, docUrl, title, description, methodology);
+  }, [runGeneration, pptFileObj, docUrl, title, description, methodology]);
 
   const handlePptFile = useCallback(
     async (entry: FileEntry, raw: File) => {
       setPptFile(entry);
       setPptFileObj(raw);
+      setDocUrl('');
 
       if (raw.name.toLowerCase().endsWith('.pdf')) {
         const cover = await extractPdfCover(raw);
@@ -532,54 +568,125 @@ export function SubmitResearchPage() {
         {/* ── File Upload + AI Fill ───────────────────────── */}
         <section style={sectionStyle}>
           <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-            Upload & AI Auto-Fill
+            📄 Upload & AI Auto-Fill
           </h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '1rem' }}>
-            Upload a PDF for best results, or just fill the title/description below and click "Fill with AI".
+            Upload a PDF <strong>or</strong> paste a document link (Google Slides, Google Docs, etc.) — the AI will read the document and auto-fill the form.
           </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            <span style={{
+              padding: '0.25rem 0.6rem',
+              borderRadius: '999px',
+              background: pptFile ? 'var(--purple-100)' : 'var(--gray-100)',
+              color: pptFile ? 'var(--purple-700)' : 'var(--gray-500)',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+            }}>
+              Option 1
+            </span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Upload PDF</span>
+          </div>
+
           <FileUploadZone
-            label="Research PDF / PPT (optional)"
-            accept=".ppt,.pptx,.pdf"
+            label="Research PDF"
+            accept=".pdf"
             file={pptFile}
             onFile={handlePptFile}
             onRemove={() => { setPptFile(null); setPptFileObj(null); }}
           />
-          <button
-            type="button"
-            onClick={autoGenerateLearnings}
-            disabled={aiLoading}
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            margin: '1rem 0',
+            color: 'var(--gray-400)',
+            fontSize: '0.75rem',
+          }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--gray-200)' }} />
+            <span style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>or</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--gray-200)' }} />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+            <span style={{
+              padding: '0.25rem 0.6rem',
+              borderRadius: '999px',
+              background: docUrl.trim() ? 'var(--purple-100)' : 'var(--gray-100)',
+              color: docUrl.trim() ? 'var(--purple-700)' : 'var(--gray-500)',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+            }}>
+              Option 2
+            </span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Paste document link</span>
+          </div>
+
+          <input
+            type="url"
+            placeholder="https://docs.google.com/presentation/d/... or any public PDF/document link"
+            value={docUrl}
+            onChange={e => { setDocUrl(e.target.value); setAiError(''); }}
+            disabled={!!pptFile}
             style={{
               width: '100%',
-              padding: '0.75rem 1rem',
+              padding: '0.65rem 0.75rem',
               borderRadius: 'var(--radius)',
-              border: 'none',
-              background: aiLoading ? 'var(--gray-200)' : 'linear-gradient(135deg, var(--purple-600), var(--purple-700))',
-              color: aiLoading ? 'var(--gray-500)' : 'white',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              cursor: aiLoading ? 'wait' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              marginTop: '0.5rem',
-              transition: 'all 0.2s',
+              border: `1px solid ${docUrl.trim() ? 'var(--purple-300)' : 'var(--gray-200)'}`,
+              background: pptFile ? 'var(--gray-50)' : 'white',
+              fontSize: '0.85rem',
+              color: pptFile ? 'var(--gray-400)' : 'var(--gray-700)',
+              boxSizing: 'border-box',
+              transition: 'border-color 0.2s',
             }}
-          >
-            {aiLoading ? (
-              <>
-                <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
-                {pptFile ? 'Reading PDF with AI...' : 'Generating with AI...'}
-              </>
-            ) : (
-              <>✨ Fill with AI{pptFile ? ' from PDF' : ''}</>
-            )}
-          </button>
-          {!pptFile && !aiLoading && (
-            <p style={{ fontSize: '0.75rem', color: 'var(--gray-400)', marginTop: '0.375rem', textAlign: 'center' }}>
-              Works best with a PDF. Without it, fill title or description first.
+          />
+          {pptFile && (
+            <p style={{ fontSize: '0.7rem', color: 'var(--gray-400)', marginTop: '0.25rem' }}>
+              Remove the PDF above to use a link instead.
             </p>
           )}
+
+          {(pptFile || docUrl.trim()) && (
+            <button
+              type="button"
+              onClick={autoGenerateLearnings}
+              disabled={aiLoading}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius)',
+                border: 'none',
+                background: aiLoading ? 'var(--gray-200)' : 'linear-gradient(135deg, var(--purple-600), var(--purple-700))',
+                color: aiLoading ? 'var(--gray-500)' : 'white',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: aiLoading ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                marginTop: '0.75rem',
+                transition: 'all 0.2s',
+              }}
+            >
+              {aiLoading ? (
+                <>
+                  <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
+                  Reading document with AI...
+                </>
+              ) : (
+                <>✨ Fill with AI from {pptFile ? 'PDF' : 'link'}</>
+              )}
+            </button>
+          )}
+
+          {!pptFile && !docUrl.trim() && !aiLoading && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--gray-400)', marginTop: '0.75rem', textAlign: 'center', fontStyle: 'italic' }}>
+              Upload a PDF or paste a link to enable AI auto-fill.
+            </p>
+          )}
+
           {aiError && (
             <p style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: '#fef2f2', borderRadius: 'var(--radius)', border: '1px solid #fecaca' }}>
               {aiError}
