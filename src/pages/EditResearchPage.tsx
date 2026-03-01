@@ -193,7 +193,7 @@ export function EditResearchPage() {
       pptScreenshots: screenshots,
       presentationUrl: presentationUrl.trim() || undefined,
     });
-    navigate(`/research/${id}`);
+    navigate('/');
   };
 
   if (!research) {
