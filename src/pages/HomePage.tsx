@@ -468,126 +468,58 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* Latest Research — only when no filters active */}
+      {/* Latest Research — compact cards, only when no filters active */}
       {latestResearch.length > 0 && noFiltersActive && (
-        <section style={{ marginTop: '2.5rem', marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem' }}>
-            🕐 Latest Research
+        <section style={{ marginTop: '2rem', marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+            🕐 Recently added
           </h2>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: '1rem',
-            }}
-          >
-            {latestResearch.map((r) => (
-              <Link
-                key={r.id}
-                to={`/research/${r.id}`}
-                style={{
-                  display: 'block',
-                  background: 'var(--white)',
-                  borderRadius: 'var(--radius-lg)',
-                  border: '1px solid var(--gray-200)',
-                  boxShadow: 'var(--shadow)',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  transition: 'box-shadow 0.2s, transform 0.2s',
-                  overflow: 'hidden',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = 'var(--shadow)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                {r.pptScreenshots && r.pptScreenshots.length > 0 ? (
-                  <img
-                    src={r.pptScreenshots[0]}
-                    alt={r.title}
-                    style={{
-                      width: '100%',
-                      aspectRatio: '16/9',
-                      objectFit: 'cover',
-                      display: 'block',
-                      borderBottom: '1px solid var(--gray-100)',
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: '100%',
-                      aspectRatio: '16/9',
-                      background: 'var(--purple-50)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '2rem',
-                      borderBottom: '1px solid var(--gray-100)',
-                    }}
-                  >
-                    {COUNTRY_EMOJI[r.country]}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {latestResearch.map((r) => {
+              const sq = normalizeSquad(r.squad);
+              return (
+                <Link
+                  key={r.id}
+                  to={`/research/${r.id}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.6rem 0.875rem',
+                    background: 'var(--white)',
+                    borderRadius: 'var(--radius)',
+                    border: '1px solid var(--gray-150, var(--gray-200))',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    transition: 'background 0.15s, box-shadow 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--purple-50, #faf5ff)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--white)'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{COUNTRY_EMOJI[r.country]}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {r.title}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--gray-400)', marginTop: '0.1rem' }}>
+                      {formatDate(r.date)}{r.researcher ? ` · ${r.researcher}` : ''}
+                    </div>
                   </div>
-                )}
-                <div style={{ padding: '0.875rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '1rem' }}>{COUNTRY_EMOJI[r.country]}</span>
-                    {(() => { const sq = normalizeSquad(r.squad); return sq && SQUAD_COLORS[sq] ? (
-                      <span style={{
-                        fontSize: '0.68rem', fontWeight: 700,
-                        padding: '0.15rem 0.45rem', borderRadius: 9999,
-                        background: SQUAD_COLORS[sq].bg,
-                        color: SQUAD_COLORS[sq].text,
-                        border: `1px solid ${SQUAD_COLORS[sq].border}`,
-                      }}>
-                        {SQUAD_LABELS[sq]}
-                      </span>
-                    ) : r.squad ? (
-                      <span style={{
-                        fontSize: '0.68rem', fontWeight: 700,
-                        padding: '0.15rem 0.45rem', borderRadius: 9999,
-                        background: '#F9FAFB', color: '#6B7280',
-                        border: '1px solid #D1D5DB',
-                      }}>
-                        {r.squad}
-                      </span>
-                    ) : null; })()}
-                    {isExternal(normalizeSquad(r.squad)) && (
-                      <span style={{
-                        fontSize: '0.62rem', fontWeight: 700,
-                        padding: '0.15rem 0.5rem', borderRadius: 9999,
-                        background: '#fef3c7', color: '#92400e',
-                        border: '1px solid #fde68a',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.03em',
-                      }}>
-                        External
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontWeight: 600, marginTop: '0.25rem', fontSize: '0.9rem' }}>{r.title}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: '0.2rem' }}>
-                    {formatDate(r.date)}
-                  </div>
-                  <p style={{
-                    fontSize: '0.8rem',
-                    color: 'var(--gray-600)',
-                    marginTop: '0.4rem',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    lineHeight: 1.4,
-                  }}>
-                    {r.description}
-                  </p>
-                </div>
-              </Link>
-            ))}
+                  {sq && SQUAD_COLORS[sq] && (
+                    <span style={{
+                      fontSize: '0.62rem', fontWeight: 700,
+                      padding: '0.15rem 0.45rem', borderRadius: 9999,
+                      background: SQUAD_COLORS[sq].bg,
+                      color: SQUAD_COLORS[sq].text,
+                      border: `1px solid ${SQUAD_COLORS[sq].border}`,
+                      flexShrink: 0, whiteSpace: 'nowrap',
+                    }}>
+                      {SQUAD_LABELS[sq]}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}
