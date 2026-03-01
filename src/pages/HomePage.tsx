@@ -169,7 +169,6 @@ export function HomePage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const [activeTab, setActiveTab] = useState<'gba' | 'external'>('gba');
   const [search, setSearch] = useState('');
   const [countryFilter, setCountryFilter] = useState<Country | 'all'>('all');
   const [squadFilter, setSquadFilter] = useState<Squad | 'all'>('all');
@@ -246,7 +245,6 @@ export function HomePage() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return researches.filter((r) => {
-      const tabMatch = activeTab === 'external' ? isExternal(r.squad) : !isExternal(r.squad);
       const matchCountry = countryFilter === 'all' || r.country === countryFilter;
       const matchSquad = squadFilter === 'all' || r.squad === squadFilter;
       const matchTag = !tagFilter || r.tags.some((t) => t.toLowerCase() === tagFilter.toLowerCase());
@@ -262,10 +260,10 @@ export function HomePage() {
         r.keyLearnings.some((k) => k.toLowerCase().includes(q)) ||
         (r.squad ? SQUAD_LABELS[r.squad].toLowerCase().includes(q) : false) ||
         (r.researcher ? r.researcher.toLowerCase().includes(q) : false);
-      return tabMatch && matchCountry && matchSquad && matchTag && matchSearch;
+      return matchCountry && matchSquad && matchTag && matchSearch;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [researches, search, countryFilter, squadFilter, tagFilter, activeTab]);
+  }, [researches, search, countryFilter, squadFilter, tagFilter]);
 
   // Suggestions: planned items not yet submitted (compare by title)
   const submittedTitles = useMemo(
@@ -293,20 +291,10 @@ export function HomePage() {
   );
 
 
-  const SQUAD_FILTER_GBA: { value: Squad | 'all'; label: string }[] = [
+  const ALL_SQUAD_FILTER: { value: Squad | 'all'; label: string }[] = [
     { value: 'all', label: 'All Squads' },
-    ...Object.entries(SQUAD_LABELS)
-      .filter(([k]) => !EXTERNAL_SQUADS.includes(k as Squad))
-      .map(([k, v]) => ({ value: k as Squad, label: v })),
+    ...Object.entries(SQUAD_LABELS).map(([k, v]) => ({ value: k as Squad, label: v })),
   ];
-
-  const SQUAD_FILTER_EXTERNAL: { value: Squad | 'all'; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'external', label: 'External' },
-    { value: 'other', label: 'Other' },
-  ];
-
-  const activeSquadFilter = activeTab === 'external' ? SQUAD_FILTER_EXTERNAL : SQUAD_FILTER_GBA;
 
   const noFiltersActive = !search && countryFilter === 'all' && squadFilter === 'all' && !tagFilter;
 
@@ -354,51 +342,6 @@ export function HomePage() {
 
       {/* ── Controls ──────────────────────────────────── */}
       <div style={{ marginTop: '-1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-
-        {/* Tab Toggle */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div
-            style={{
-              display: 'flex',
-              gap: '0.25rem',
-              background: 'var(--gray-100)',
-              borderRadius: 9999,
-              padding: '0.25rem',
-            }}
-          >
-            {([
-              { key: 'gba', label: 'GBA Research' },
-              { key: 'external', label: 'External Research' },
-            ] as const).map((tab) => {
-              const active = activeTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => {
-                    setActiveTab(tab.key);
-                    setSquadFilter('all');
-                    setTagFilter('');
-                  }}
-                  style={{
-                    padding: '0.5rem 1.25rem',
-                    fontWeight: active ? 500 : 400,
-                    fontSize: '0.85rem',
-                    border: 'none',
-                    borderRadius: 9999,
-                    background: active ? 'white' : 'transparent',
-                    boxShadow: active ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    cursor: 'pointer',
-                    color: active ? 'var(--purple-700)' : 'var(--gray-500)',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Search */}
         <input
@@ -495,7 +438,7 @@ export function HomePage() {
             }}
           >
             <option value="all">All Squads</option>
-            {activeSquadFilter.filter(s => s.value !== 'all').map((s) => (
+            {ALL_SQUAD_FILTER.filter(s => s.value !== 'all').map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
@@ -581,6 +524,18 @@ export function HomePage() {
                         {SQUAD_LABELS[r.squad]}
                       </span>
                     )}
+                    {isExternal(r.squad) && (
+                      <span style={{
+                        fontSize: '0.62rem', fontWeight: 700,
+                        padding: '0.15rem 0.5rem', borderRadius: 9999,
+                        background: '#fef3c7', color: '#92400e',
+                        border: '1px solid #fde68a',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.03em',
+                      }}>
+                        External
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontWeight: 600, marginTop: '0.25rem', fontSize: '0.9rem' }}>{r.title}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: '0.2rem' }}>
@@ -609,7 +564,7 @@ export function HomePage() {
       <section style={{ marginTop: '2.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: 700 }}>
-            📚 {activeTab === 'external' ? 'External Research' : 'All Research'}
+            📚 All Research
           </h2>
           <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontWeight: 300 }}>
             {filtered.length} result{filtered.length !== 1 ? 's' : ''}
@@ -673,7 +628,7 @@ export function HomePage() {
               )}
 
               <div style={{ padding: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '1rem' }}>{COUNTRY_EMOJI[r.country]}</span>
                 {r.squad && (
                   <span
@@ -688,6 +643,18 @@ export function HomePage() {
                     }}
                   >
                     {SQUAD_LABELS[r.squad]}
+                  </span>
+                )}
+                {isExternal(r.squad) && (
+                  <span style={{
+                    fontSize: '0.62rem', fontWeight: 700,
+                    padding: '0.15rem 0.5rem', borderRadius: 9999,
+                    background: '#fef3c7', color: '#92400e',
+                    border: '1px solid #fde68a',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.03em',
+                  }}>
+                    External
                   </span>
                 )}
               </div>
@@ -766,16 +733,14 @@ export function HomePage() {
           >
             <p style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🔍</p>
             <p style={{ color: 'var(--gray-500)', fontWeight: 300 }}>
-              {activeTab === 'external'
-                ? 'No external research yet. Submit one using "New Research" and select External or Other as the squad.'
-                : 'No research found matching your filters.'}
+              No research found matching your filters.
             </p>
           </div>
         )}
       </section>
 
       {/* Suggestions — GBA tab only */}
-      <section style={{ marginTop: '2.5rem', display: activeTab === 'external' ? 'none' : undefined }}>
+      <section style={{ marginTop: '2.5rem' }}>
         <div
           style={{
             display: 'flex',

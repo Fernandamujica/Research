@@ -39,10 +39,13 @@ export function CrossGeoInsightsPage() {
         .map((country) => {
           const countryResearches = researches.filter((r) => r.country === country);
           if (countryResearches.length === 0) return '';
+          const externalSquads = ['external', 'other'];
           const summaries = countryResearches
             .map(
-              (r) =>
-                `- "${r.title}" (${r.squad ? SQUAD_LABELS[r.squad] : 'N/A'}, ${r.date})\n  Description: ${r.description}\n  Key learnings: ${r.keyLearnings.join('; ')}`
+              (r) => {
+                const ext = r.squad && externalSquads.includes(r.squad) ? ' [EXTERNAL]' : '';
+                return `- "${r.title}"${ext} (${r.squad ? SQUAD_LABELS[r.squad] : 'N/A'}, ${r.date})\n  Description: ${r.description}\n  Key learnings: ${r.keyLearnings.join('; ')}`;
+              }
             )
             .join('\n');
           return `## ${COUNTRY_LABELS[country]} (${countryResearches.length} studies)\n${summaries}`;
