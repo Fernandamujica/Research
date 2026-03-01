@@ -178,6 +178,18 @@ export function HomePage() {
   const EXTERNAL_SQUADS: Squad[] = ['external', 'other'];
   const isExternal = (squad?: Squad) => !!squad && EXTERNAL_SQUADS.includes(squad);
 
+  const LABEL_TO_KEY: Record<string, Squad> = {};
+  for (const [k, v] of Object.entries(SQUAD_LABELS)) {
+    LABEL_TO_KEY[v.toLowerCase()] = k as Squad;
+    LABEL_TO_KEY[k] = k as Squad;
+  }
+  const normalizeSquad = (s?: string | null): Squad | undefined => {
+    if (!s) return undefined;
+    const trimmed = s.trim();
+    if (trimmed in SQUAD_LABELS) return trimmed as Squad;
+    return LABEL_TO_KEY[trimmed.toLowerCase()] ?? undefined;
+  };
+
   const selectTag = useCallback((tag: string) => {
     setTagFilter((prev) => (prev === tag ? '' : tag));
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -245,9 +257,11 @@ export function HomePage() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return researches.filter((r) => {
+      const rSquad = normalizeSquad(r.squad);
       const matchCountry = countryFilter === 'all' || r.country === countryFilter;
-      const matchSquad = squadFilter === 'all' || r.squad === squadFilter;
+      const matchSquad = squadFilter === 'all' || rSquad === squadFilter;
       const matchTag = !tagFilter || r.tags.some((t) => t.toLowerCase() === tagFilter.toLowerCase());
+      const squadLabel = rSquad ? (SQUAD_LABELS[rSquad] ?? '') : '';
       const matchSearch =
         !q ||
         r.title.toLowerCase().includes(q) ||
@@ -258,7 +272,7 @@ export function HomePage() {
         r.date.includes(q) ||
         r.methodology.toLowerCase().includes(q) ||
         r.keyLearnings.some((k) => k.toLowerCase().includes(q)) ||
-        (r.squad ? SQUAD_LABELS[r.squad].toLowerCase().includes(q) : false) ||
+        squadLabel.toLowerCase().includes(q) ||
         (r.researcher ? r.researcher.toLowerCase().includes(q) : false);
       return matchCountry && matchSquad && matchTag && matchSearch;
     });
@@ -414,34 +428,41 @@ export function HomePage() {
           })}
         </div>
 
-        {/* Squad Filter — subtle dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.65rem', color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
-            Squad:
-          </span>
-          <select
-            value={squadFilter}
-            onChange={(e) => setSquadFilter(e.target.value as Squad | 'all')}
-            style={{
-              height: 32,
-              padding: '0 2rem 0 0.75rem',
-              borderRadius: 9999,
-              background: 'var(--white)',
-              border: '1px solid var(--gray-200)',
-              fontSize: '0.8rem',
-              color: 'var(--gray-700)',
-              cursor: 'pointer',
-              appearance: 'none',
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 8px center',
-            }}
-          >
-            <option value="all">All Squads</option>
-            {ALL_SQUAD_FILTER.filter(s => s.value !== 'all').map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
+        {/* Squad Filter — pill buttons */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+          {ALL_SQUAD_FILTER.map((s) => {
+            const active = squadFilter === s.value;
+            const colors = s.value !== 'all' && SQUAD_COLORS[s.value as Squad]
+              ? SQUAD_COLORS[s.value as Squad]
+              : null;
+            return (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() => setSquadFilter(s.value as Squad | 'all')}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  borderRadius: 9999,
+                  border: active
+                    ? 'none'
+                    : `1px solid ${colors ? colors.border : 'var(--gray-200)'}`,
+                  background: active
+                    ? (colors ? colors.bg : 'var(--purple-600)')
+                    : 'var(--white)',
+                  color: active
+                    ? (colors ? colors.text : 'white')
+                    : 'var(--gray-600)',
+                  fontWeight: active ? 600 : 400,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  boxShadow: active ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                }}
+              >
+                {s.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -513,18 +534,27 @@ export function HomePage() {
                 <div style={{ padding: '0.875rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '1rem' }}>{COUNTRY_EMOJI[r.country]}</span>
-                    {r.squad && (
+                    {(() => { const sq = normalizeSquad(r.squad); return sq && SQUAD_COLORS[sq] ? (
                       <span style={{
                         fontSize: '0.68rem', fontWeight: 700,
                         padding: '0.15rem 0.45rem', borderRadius: 9999,
-                        background: SQUAD_COLORS[r.squad].bg,
-                        color: SQUAD_COLORS[r.squad].text,
-                        border: `1px solid ${SQUAD_COLORS[r.squad].border}`,
+                        background: SQUAD_COLORS[sq].bg,
+                        color: SQUAD_COLORS[sq].text,
+                        border: `1px solid ${SQUAD_COLORS[sq].border}`,
                       }}>
-                        {SQUAD_LABELS[r.squad]}
+                        {SQUAD_LABELS[sq]}
                       </span>
-                    )}
-                    {isExternal(r.squad) && (
+                    ) : r.squad ? (
+                      <span style={{
+                        fontSize: '0.68rem', fontWeight: 700,
+                        padding: '0.15rem 0.45rem', borderRadius: 9999,
+                        background: '#F9FAFB', color: '#6B7280',
+                        border: '1px solid #D1D5DB',
+                      }}>
+                        {r.squad}
+                      </span>
+                    ) : null; })()}
+                    {isExternal(normalizeSquad(r.squad)) && (
                       <span style={{
                         fontSize: '0.62rem', fontWeight: 700,
                         padding: '0.15rem 0.5rem', borderRadius: 9999,
@@ -630,22 +660,31 @@ export function HomePage() {
               <div style={{ padding: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '1rem' }}>{COUNTRY_EMOJI[r.country]}</span>
-                {r.squad && (
+                {(() => { const sq = normalizeSquad(r.squad); return sq && SQUAD_COLORS[sq] ? (
                   <span
                     style={{
                       padding: '0.15rem 0.45rem',
                       borderRadius: 9999,
-                      background: SQUAD_COLORS[r.squad].bg,
-                      color: SQUAD_COLORS[r.squad].text,
-                      border: `1px solid ${SQUAD_COLORS[r.squad].border}`,
+                      background: SQUAD_COLORS[sq].bg,
+                      color: SQUAD_COLORS[sq].text,
+                      border: `1px solid ${SQUAD_COLORS[sq].border}`,
                       fontSize: '0.68rem',
                       fontWeight: 700,
                     }}
                   >
-                    {SQUAD_LABELS[r.squad]}
+                    {SQUAD_LABELS[sq]}
                   </span>
-                )}
-                {isExternal(r.squad) && (
+                ) : r.squad ? (
+                  <span style={{
+                    padding: '0.15rem 0.45rem', borderRadius: 9999,
+                    background: '#F9FAFB', color: '#6B7280',
+                    border: '1px solid #D1D5DB',
+                    fontSize: '0.68rem', fontWeight: 700,
+                  }}>
+                    {r.squad}
+                  </span>
+                ) : null; })()}
+                {isExternal(normalizeSquad(r.squad)) && (
                   <span style={{
                     fontSize: '0.62rem', fontWeight: 700,
                     padding: '0.15rem 0.5rem', borderRadius: 9999,
