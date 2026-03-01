@@ -11,8 +11,6 @@ import type { PlannedResearch } from '../data/plannedResearch';
 import { extractKeyLearningsFromText, autoFillFromPdf, getApiKey } from '../utils/aiGenerate';
 import { extractPdfText, extractPdfCover } from '../utils/extractPdfText';
 import { getResearchers } from '../utils/settings';
-import { getGooglePickerConfig } from '../utils/settings';
-import { openGooglePicker } from '../utils/googlePicker';
 
 const COUNTRIES: Country[] = ['brasil', 'mexico', 'usa', 'colombia', 'global'];
 const SQUADS = Object.keys(SQUAD_LABELS) as Squad[];
@@ -782,7 +780,7 @@ export function SubmitResearchPage() {
             Presentation Link
           </h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '1rem' }}>
-            Pick a file from Google Drive or paste any link (Slides, Docs, Notion, etc.).
+            Paste a link to the research presentation (Google Slides, Docs, Notion, Figma, etc.)
           </p>
 
           {presentationUrl ? (
@@ -799,9 +797,10 @@ export function SubmitResearchPage() {
               }}
             >
               <span style={{ fontSize: '1.1rem' }}>
-                {presentationUrl.includes('presentation') ? '📊' :
-                 presentationUrl.includes('document') ? '📝' :
-                 presentationUrl.includes('spreadsheet') ? '📈' : '🔗'}
+                {presentationUrl.includes('presentation') || presentationUrl.includes('slides') ? '📊' :
+                 presentationUrl.includes('document') || presentationUrl.includes('docs') ? '📝' :
+                 presentationUrl.includes('figma') ? '🎨' :
+                 presentationUrl.includes('notion') ? '📓' : '🔗'}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
@@ -833,85 +832,13 @@ export function SubmitResearchPage() {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-              {(() => {
-                const pickerCfg = getGooglePickerConfig();
-                if (!pickerCfg) return null;
-                return (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        const result = await openGooglePicker(pickerCfg.clientId, pickerCfg.apiKey);
-                        if (result) setPresentationUrl(result.url);
-                      } catch (err: unknown) {
-                        const msg = err instanceof Error ? err.message : 'Failed to open picker';
-                        setErrors((v) => ({ ...v, presentation: msg }));
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      minWidth: 180,
-                      padding: '0.75rem 1rem',
-                      borderRadius: 'var(--radius)',
-                      border: '2px solid var(--purple-200)',
-                      background: 'var(--white)',
-                      fontSize: '0.85rem',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      color: 'var(--purple-700)',
-                      transition: 'all 0.15s',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--purple-50)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--white)'; }}
-                  >
-                    <img
-                      src="https://www.gstatic.com/images/branding/product/1x/drive_2020q4_48dp.png"
-                      alt=""
-                      style={{ width: 20, height: 20 }}
-                    />
-                    Pick from Google Drive
-                  </button>
-                );
-              })()}
-              <button
-                type="button"
-                onClick={() => window.open('https://drive.google.com', '_blank')}
-                style={{
-                  flex: 1,
-                  minWidth: 160,
-                  padding: '0.75rem 1rem',
-                  borderRadius: 'var(--radius)',
-                  border: '1px solid var(--gray-200)',
-                  background: 'var(--white)',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  color: 'var(--gray-600)',
-                }}
-              >
-                Open Google Drive ↗
-              </button>
-            </div>
-          )}
-
-          <label style={labelStyle}>Or paste URL directly</label>
-          <input
-            type="url"
-            value={presentationUrl}
-            onChange={(e) => setPresentationUrl(e.target.value)}
-            placeholder="https://docs.google.com/presentation/d/..."
-            style={inputStyle}
-          />
-          {errors.presentation && (
-            <p style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '-0.5rem' }}>{errors.presentation}</p>
+            <input
+              type="url"
+              value={presentationUrl}
+              onChange={(e) => setPresentationUrl(e.target.value)}
+              placeholder="https://docs.google.com/presentation/d/..."
+              style={inputStyle}
+            />
           )}
         </section>
 
