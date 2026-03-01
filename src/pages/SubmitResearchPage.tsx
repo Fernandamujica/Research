@@ -1192,6 +1192,10 @@ export function SubmitResearchPage() {
               Thank you for sharing your research with the team.
             </p>
 
+            <p style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--gray-700)', marginBottom: '0.75rem' }}>
+              How about sharing it on Slack channels?
+            </p>
+
             <div style={{
               textAlign: 'left',
               background: 'var(--gray-50)',
