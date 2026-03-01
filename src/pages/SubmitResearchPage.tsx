@@ -286,6 +286,9 @@ export function SubmitResearchPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [slackMessage, setSlackMessage] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // Banner to show when form was pre-filled from a suggestion
   const [fromSuggestion] = useState(!!suggestion);
@@ -431,6 +434,9 @@ export function SubmitResearchPage() {
     }
 
     setErrors({});
+
+    const filteredLearnings = keyLearnings.filter((k) => k.trim());
+
     addResearch({
       title: title.trim(),
       description: description.trim(),
@@ -441,14 +447,30 @@ export function SubmitResearchPage() {
       methodology: methodology.trim(),
       team: teamFiltered,
       tags: tagsFiltered,
-      keyLearnings: keyLearnings.filter((k) => k.trim()),
+      keyLearnings: filteredLearnings,
       pptScreenshots: screenshots,
       presentationUrl: presentationUrl.trim() || undefined,
       pptFile: pptFile ?? undefined,
       planFile: planFile ?? undefined,
       usefulLinks: usefulLinks.filter((l) => l.name.trim() && l.url.trim()),
     });
-    navigate('/');
+
+    const emoji = COUNTRY_EMOJI[country] ?? '';
+    const learningsText = filteredLearnings.length > 0
+      ? filteredLearnings.map((l, i) => `   ${i + 1}. ${l}`).join('\n')
+      : '   No key learnings added yet.';
+
+    const msg = `${emoji} *New Research Published!*\n\n` +
+      `*${title.trim()}*\n` +
+      `${description.trim()}\n\n` +
+      `*Key Findings:*\n${learningsText}\n\n` +
+      `${tagsFiltered.map((t) => `#${t.replace(/\s+/g, '_')}`).join(' ')}` +
+      `${squad ? ` | ${SQUAD_LABELS[squad as Squad]}` : ''}` +
+      `${researcher ? ` | by ${researcher}` : ''}`;
+
+    setSlackMessage(msg);
+    setShowSuccess(true);
+    setCopied(false);
   };
 
   const errStyle: React.CSSProperties = {
@@ -1086,6 +1108,126 @@ export function SubmitResearchPage() {
           </button>
         </div>
       </form>
+
+      {/* Success Modal */}
+      {showSuccess && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 200,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: 16,
+              padding: '2rem 1.75rem',
+              maxWidth: 520,
+              width: '100%',
+              textAlign: 'center',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            <img
+              src={`${import.meta.env.BASE_URL}achievement.png`}
+              alt="Achievement!"
+              style={{ height: 150, margin: '0 auto 1rem', display: 'block', objectFit: 'contain' }}
+            />
+            <h2 style={{
+              fontSize: '1.5rem',
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, var(--purple-600), var(--purple-400))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              marginBottom: '0.25rem',
+            }}>
+              Research Published!
+            </h2>
+            <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+              Thank you for sharing your research with the team.
+            </p>
+
+            <div style={{
+              textAlign: 'left',
+              background: 'var(--gray-50)',
+              border: '1px solid var(--gray-200)',
+              borderRadius: 10,
+              padding: '1rem',
+              marginBottom: '1rem',
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '0.5rem',
+              }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Slack Message
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(slackMessage);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2500);
+                  }}
+                  style={{
+                    padding: '0.3rem 0.75rem',
+                    borderRadius: 9999,
+                    border: 'none',
+                    background: copied ? '#16a34a' : 'var(--purple-600)',
+                    color: 'white',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  {copied ? '✓ Copied!' : 'Copy'}
+                </button>
+              </div>
+              <pre style={{
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                fontSize: '0.8rem',
+                lineHeight: 1.6,
+                color: 'var(--gray-700)',
+                fontFamily: 'inherit',
+                margin: 0,
+              }}>
+                {slackMessage}
+              </pre>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1.5rem',
+                borderRadius: 9999,
+                border: 'none',
+                background: 'var(--purple-600)',
+                color: 'white',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(124,58,237,0.35)',
+              }}
+            >
+              Go to Home
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
