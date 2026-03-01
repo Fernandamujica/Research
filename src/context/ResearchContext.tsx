@@ -8,7 +8,6 @@ import {
   ReactNode,
 } from 'react';
 import type { Research } from '../types/research';
-import { SEED_RESEARCH } from '../data/seedResearch';
 
 interface ResearchContextValue {
   researches: Research[];
@@ -31,11 +30,11 @@ function loadFromStorage(): Research[] {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Research[];
-      if (parsed.length > 0) return parsed;
+      return parsed;
     }
-    return SEED_RESEARCH;
+    return [];
   } catch {
-    return SEED_RESEARCH;
+    return [];
   }
 }
 
