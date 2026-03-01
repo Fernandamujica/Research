@@ -1,10 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useResearch } from '../context/ResearchContext';
 import { COUNTRY_EMOJI, COUNTRY_LABELS, SQUAD_LABELS } from '../types/research';
 import type { Country } from '../types/research';
 import { getApiKey } from '../utils/aiGenerate';
 
 const COUNTRY_LIST: Country[] = ['brasil', 'mexico', 'usa', 'colombia'];
+
+const COUNTRY_COLORS: Record<string, { bg: string; border: string; text: string; accent: string }> = {
+  Brasil: { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', accent: '#16a34a' },
+  Brazil: { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', accent: '#16a34a' },
+  Mexico: { bg: '#fef3c7', border: '#fde68a', text: '#92400e', accent: '#d97706' },
+  México: { bg: '#fef3c7', border: '#fde68a', text: '#92400e', accent: '#d97706' },
+  USA: { bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af', accent: '#2563eb' },
+  Colombia: { bg: '#fdf2f8', border: '#fbcfe8', text: '#9d174d', accent: '#db2777' },
+};
 
 type Mode = 'summary' | 'compare';
 
@@ -65,15 +74,25 @@ export function CrossGeoInsightsPage() {
           setLoading(false);
           return;
         }
-        prompt = `You are a senior UX research analyst at Nubank. Analyze all the research below for ${COUNTRY_LABELS[selectedCountry]} and provide:
+        prompt = `You are a senior UX research analyst at Nubank. Analyze all the research below for ${COUNTRY_EMOJI[selectedCountry]} ${COUNTRY_LABELS[selectedCountry]} and provide:
 
-1. **Key Themes** — The main themes that emerge across all studies
-2. **Patterns & Trends** — Recurring patterns, pain points, and opportunities
-3. **Strategic Recommendations** — Actionable recommendations based on the evidence
+## 🔍 Key Themes
+The main themes that emerge across all studies
+
+## 📊 Patterns & Trends
+Recurring patterns, pain points, and opportunities
+
+## 🎯 Strategic Recommendations
+Actionable recommendations based on the evidence
 
 ${context}
 
-Write in a clear, professional tone. Use markdown formatting. Be specific and data-backed where possible.`;
+IMPORTANT formatting rules:
+- Use ## for section headers, always with an emoji prefix
+- Use **bold** for key terms
+- Use bullet points (- ) for lists
+- Be specific and data-backed where possible
+- Write in a clear, professional tone`;
       } else {
         const context = buildContext(compareCountries);
         if (!context) {
@@ -81,18 +100,35 @@ Write in a clear, professional tone. Use markdown formatting. Be specific and da
           setLoading(false);
           return;
         }
-        prompt = `You are a senior UX research analyst at Nubank. Compare research findings across countries${compareTopic ? ` focusing on the topic: "${compareTopic}"` : ''}.
+        const countryEmojis = compareCountries.map((c) => `${COUNTRY_EMOJI[c]} ${COUNTRY_LABELS[c]}`).join(', ');
+        prompt = `You are a senior UX research analyst at Nubank. Compare research findings across ${countryEmojis}${compareTopic ? ` focusing on: "${compareTopic}"` : ''}.
 
-Create a comparative analysis with:
-1. **Overview** — Brief summary of research in each country
-2. **Comparative Table** — A markdown table comparing key findings by country${compareTopic ? ` related to "${compareTopic}"` : ''}
-3. **Unique Insights** — What's unique to each country
-4. **Cross-Country Patterns** — What's consistent across all countries
-5. **Recommendations** — How to leverage learnings globally
+Structure your response EXACTLY with these sections:
+
+## 🌎 Overview
+Brief summary of research in each country. Use the country flag emoji (🇧🇷 🇲🇽 🇺🇸 🇨🇴) before each country name.
+
+## 📊 Comparative Table
+A markdown table comparing key findings by country${compareTopic ? ` related to "${compareTopic}"` : ''}. Use flag emojis in column headers.
+
+## 💡 Unique Insights
+What's unique to each country. Group by country using ### with flag emoji.
+
+## 🔗 Cross-Country Patterns
+What's consistent across all countries.
+
+## 🎯 Recommendations
+How to leverage learnings globally.
 
 ${context}
 
-Write in a clear, professional tone. Use markdown tables where helpful. Be specific.`;
+IMPORTANT formatting rules:
+- Always use country flag emojis (🇧🇷 🇲🇽 🇺🇸 🇨🇴) before country names
+- Use ## for main sections, ### for subsections
+- Use **bold** for key terms and findings
+- Use bullet points (- ) for lists
+- Use markdown tables with | syntax
+- Be specific and data-backed`;
       }
 
       const res = await fetch(
@@ -320,39 +356,174 @@ Write in a clear, professional tone. Use markdown tables where helpful. Be speci
 
       {/* Result */}
       {result && (
-        <section
-          className="card-shadow"
-          style={{
-            ...sectionStyle,
-            marginTop: '1.5rem',
-            marginBottom: '2rem',
-          }}
-        >
-          <div
-            style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--gray-700)' }}
-            dangerouslySetInnerHTML={{ __html: markdownToHtml(result) }}
-          />
-        </section>
+        <div style={{ marginTop: '1.5rem', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {parseResultSections(result).map((section, i) => (
+            <section
+              key={i}
+              className="card-shadow"
+              style={{
+                padding: '1.25rem 1.5rem',
+                background: section.color?.bg ?? 'var(--white)',
+                borderRadius: 'var(--radius-lg)',
+                border: `1px solid ${section.color?.border ?? 'var(--gray-200)'}`,
+              }}
+            >
+              {section.heading && (
+                <h2 style={{
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  color: section.color?.text ?? 'var(--gray-800)',
+                  marginBottom: '0.75rem',
+                  paddingBottom: '0.5rem',
+                  borderBottom: `2px solid ${section.color?.border ?? 'var(--gray-100)'}`,
+                  letterSpacing: '-0.01em',
+                }}>
+                  {section.heading}
+                </h2>
+              )}
+              <div
+                style={{ fontSize: '0.875rem', lineHeight: 1.75, color: 'var(--gray-700)' }}
+                dangerouslySetInnerHTML={{ __html: section.html }}
+              />
+            </section>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
-function markdownToHtml(md: string): string {
-  return md
-    .replace(/^### (.+)$/gm, '<h3 style="font-weight:600;font-size:1rem;margin:1.25rem 0 0.5rem">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 style="font-weight:700;font-size:1.1rem;margin:1.5rem 0 0.5rem">$1</h2>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^\| (.+)$/gm, (match) => {
-      const cells = match.split('|').filter(Boolean).map((c) => c.trim());
-      const isHeader = cells.every((c) => /^-+$/.test(c));
-      if (isHeader) return '';
-      const tag = 'td';
-      return `<tr>${cells.map((c) => `<${tag} style="padding:0.375rem 0.75rem;border:1px solid var(--gray-200);font-size:0.8rem">${c}</${tag}>`).join('')}</tr>`;
-    })
-    .replace(/((<tr>.*<\/tr>\s*)+)/g, '<table style="border-collapse:collapse;width:100%;margin:0.75rem 0;border-radius:var(--radius);overflow:hidden">$1</table>')
-    .replace(/^- (.+)$/gm, '<li style="margin-left:1.25rem;margin-bottom:0.25rem">$1</li>')
-    .replace(/^(\d+)\. (.+)$/gm, '<li style="margin-left:1.25rem;margin-bottom:0.25rem">$2</li>')
-    .replace(/\n{2,}/g, '<br/><br/>')
-    .replace(/\n/g, '<br/>');
+interface ResultSection {
+  heading: string;
+  html: string;
+  color?: { bg: string; border: string; text: string };
+}
+
+const SECTION_THEMES: Record<string, { bg: string; border: string; text: string }> = {
+  'overview':        { bg: '#f0f9ff', border: '#bae6fd', text: '#0369a1' },
+  'visão':           { bg: '#f0f9ff', border: '#bae6fd', text: '#0369a1' },
+  'key themes':      { bg: '#faf5ff', border: '#e9d5ff', text: '#7e22ce' },
+  'temas':           { bg: '#faf5ff', border: '#e9d5ff', text: '#7e22ce' },
+  'patterns':        { bg: '#fff7ed', border: '#fed7aa', text: '#c2410c' },
+  'padrões':         { bg: '#fff7ed', border: '#fed7aa', text: '#c2410c' },
+  'comparative':     { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534' },
+  'comparativ':      { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534' },
+  'unique':          { bg: '#fdf2f8', border: '#fbcfe8', text: '#9d174d' },
+  'único':           { bg: '#fdf2f8', border: '#fbcfe8', text: '#9d174d' },
+  'cross-country':   { bg: '#ecfdf5', border: '#a7f3d0', text: '#065f46' },
+  'cross country':   { bg: '#ecfdf5', border: '#a7f3d0', text: '#065f46' },
+  'recommend':       { bg: '#fefce8', border: '#fde68a', text: '#a16207' },
+  'recomend':        { bg: '#fefce8', border: '#fde68a', text: '#a16207' },
+  'strategic':       { bg: '#fefce8', border: '#fde68a', text: '#a16207' },
+  'estratég':        { bg: '#fefce8', border: '#fde68a', text: '#a16207' },
+};
+
+function getSectionTheme(heading: string) {
+  const lower = heading.toLowerCase();
+  for (const [key, theme] of Object.entries(SECTION_THEMES)) {
+    if (lower.includes(key)) return theme;
+  }
+  return { bg: 'var(--white)', border: 'var(--gray-200)', text: 'var(--gray-800)' };
+}
+
+function bodyToHtml(body: string): string {
+  const lines = body.split('\n');
+  let html = '';
+  let inTable = false;
+  let isFirstTableRow = true;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      const cells = trimmed.split('|').filter(Boolean).map((c) => c.trim());
+      const isSeparator = cells.every((c) => /^[-:]+$/.test(c));
+      if (isSeparator) continue;
+
+      if (!inTable) {
+        html += '<div style="overflow-x:auto;margin:0.75rem 0"><table style="border-collapse:collapse;width:100%;border-radius:8px;overflow:hidden;font-size:0.8rem">';
+        inTable = true;
+        isFirstTableRow = true;
+      }
+
+      if (isFirstTableRow) {
+        html += `<thead><tr>${cells.map((c) =>
+          `<th style="padding:0.625rem 0.875rem;background:var(--purple-600);color:white;font-weight:600;text-align:left;font-size:0.8rem;white-space:nowrap">${applyInline(c)}</th>`
+        ).join('')}</tr></thead><tbody>`;
+        isFirstTableRow = false;
+      } else {
+        html += `<tr>${cells.map((c) =>
+          `<td style="padding:0.5rem 0.875rem;border-bottom:1px solid var(--gray-100);font-size:0.8rem">${applyInline(c)}</td>`
+        ).join('')}</tr>`;
+      }
+      continue;
+    }
+
+    if (inTable) {
+      html += '</tbody></table></div>';
+      inTable = false;
+      isFirstTableRow = true;
+    }
+
+    if (trimmed.startsWith('### ')) {
+      const text = trimmed.slice(4);
+      const countryMatch = Object.entries(COUNTRY_COLORS).find(([name]) => text.includes(name));
+      const accent = countryMatch ? countryMatch[1].accent : 'var(--purple-600)';
+      html += `<h3 style="font-weight:700;font-size:0.95rem;margin:1rem 0 0.375rem;color:${accent};display:flex;align-items:center;gap:0.375rem">${applyInline(text)}</h3>`;
+    } else if (trimmed.startsWith('- ')) {
+      const content = trimmed.slice(2);
+      html += `<div style="display:flex;align-items:flex-start;gap:0.5rem;margin:0.25rem 0 0.25rem 0.25rem"><span style="color:var(--purple-400);font-size:0.7rem;margin-top:0.35rem;flex-shrink:0">●</span><span>${applyInline(content)}</span></div>`;
+    } else if (/^\d+\.\s/.test(trimmed)) {
+      const num = trimmed.match(/^(\d+)\.\s/)?.[1] ?? '';
+      const content = trimmed.replace(/^\d+\.\s/, '');
+      html += `<div style="display:flex;align-items:flex-start;gap:0.5rem;margin:0.25rem 0 0.25rem 0.25rem"><span style="background:var(--purple-100);color:var(--purple-700);font-size:0.7rem;font-weight:700;min-width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:0.15rem">${num}</span><span>${applyInline(content)}</span></div>`;
+    } else if (trimmed === '') {
+      html += '<div style="height:0.375rem"></div>';
+    } else {
+      html += `<p style="margin:0.25rem 0">${applyInline(trimmed)}</p>`;
+    }
+  }
+
+  if (inTable) {
+    html += '</tbody></table></div>';
+  }
+
+  return html;
+}
+
+function applyInline(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:600;color:var(--gray-800)">$1</strong>');
+}
+
+function parseResultSections(md: string): ResultSection[] {
+  const lines = md.split('\n');
+  const sections: ResultSection[] = [];
+  let currentHeading = '';
+  let currentBody: string[] = [];
+
+  const flush = () => {
+    const body = currentBody.join('\n').trim();
+    if (body || currentHeading) {
+      sections.push({
+        heading: currentHeading,
+        html: bodyToHtml(body),
+        color: currentHeading ? getSectionTheme(currentHeading) : undefined,
+      });
+    }
+  };
+
+  for (const line of lines) {
+    const h2Match = line.match(/^## (.+)$/);
+    if (h2Match) {
+      flush();
+      currentHeading = h2Match[1];
+      currentBody = [];
+    } else {
+      currentBody.push(line);
+    }
+  }
+  flush();
+
+  return sections;
 }
