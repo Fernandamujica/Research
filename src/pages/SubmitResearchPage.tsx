@@ -532,50 +532,53 @@ export function SubmitResearchPage() {
         {/* ── File Upload + AI Fill ───────────────────────── */}
         <section style={sectionStyle}>
           <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-            Upload Research PDF
+            Upload & AI Auto-Fill
           </h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '1rem' }}>
-            Upload a PDF and the AI will extract the cover image and can auto-fill all fields.
+            Upload a PDF for best results, or just fill the title/description below and click "Fill with AI".
           </p>
           <FileUploadZone
-            label="Research PDF / PPT"
+            label="Research PDF / PPT (optional)"
             accept=".ppt,.pptx,.pdf"
             file={pptFile}
             onFile={handlePptFile}
             onRemove={() => { setPptFile(null); setPptFileObj(null); }}
           />
-          {pptFile && (
-            <button
-              type="button"
-              onClick={autoGenerateLearnings}
-              disabled={aiLoading}
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius)',
-                border: 'none',
-                background: aiLoading ? 'var(--gray-200)' : 'linear-gradient(135deg, var(--purple-600), var(--purple-700))',
-                color: aiLoading ? 'var(--gray-500)' : 'white',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                cursor: aiLoading ? 'wait' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                marginTop: '0.5rem',
-                transition: 'all 0.2s',
-              }}
-            >
-              {aiLoading ? (
-                <>
-                  <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
-                  Reading PDF with AI...
-                </>
-              ) : (
-                <>✨ Fill with AI</>
-              )}
-            </button>
+          <button
+            type="button"
+            onClick={autoGenerateLearnings}
+            disabled={aiLoading}
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius)',
+              border: 'none',
+              background: aiLoading ? 'var(--gray-200)' : 'linear-gradient(135deg, var(--purple-600), var(--purple-700))',
+              color: aiLoading ? 'var(--gray-500)' : 'white',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              cursor: aiLoading ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              marginTop: '0.5rem',
+              transition: 'all 0.2s',
+            }}
+          >
+            {aiLoading ? (
+              <>
+                <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
+                {pptFile ? 'Reading PDF with AI...' : 'Generating with AI...'}
+              </>
+            ) : (
+              <>✨ Fill with AI{pptFile ? ' from PDF' : ''}</>
+            )}
+          </button>
+          {!pptFile && !aiLoading && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--gray-400)', marginTop: '0.375rem', textAlign: 'center' }}>
+              Works best with a PDF. Without it, fill title or description first.
+            </p>
           )}
           {aiError && (
             <p style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: '#fef2f2', borderRadius: 'var(--radius)', border: '1px solid #fecaca' }}>
