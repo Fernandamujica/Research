@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getSettings,
   saveSettings,
+  subscribeSettings,
   DEFAULT_SQUADS,
   DEFAULT_COUNTRIES,
   DEFAULT_RESEARCHERS,
@@ -205,14 +206,22 @@ function CountryList({
 export function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings>(getSettings);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const save = () => {
-    saveSettings(settings);
+  useEffect(() => {
+    const unsub = subscribeSettings((s) => setSettings(s));
+    return () => { unsub?.(); };
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    await saveSettings(settings);
+    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const reset = () => {
+  const reset = async () => {
     const defaults: AppSettings = {
       squads: [...DEFAULT_SQUADS],
       countries: [...DEFAULT_COUNTRIES],
@@ -220,7 +229,9 @@ export function SettingsPage() {
       methodologies: [...DEFAULT_METHODOLOGIES],
     };
     setSettings(defaults);
-    saveSettings(defaults);
+    setSaving(true);
+    await saveSettings(defaults);
+    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -386,7 +397,7 @@ export function SettingsPage() {
             transition: 'background 0.2s',
           }}
         >
-          {saved ? '✓ Saved!' : 'Save Settings'}
+          {saving ? 'Saving...' : saved ? '✓ Saved for everyone!' : 'Save Settings'}
         </button>
       </div>
     </div>

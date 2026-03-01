@@ -1,3 +1,6 @@
+import { db, firebaseEnabled } from '../lib/firebase';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+
 export interface AppSettings {
   squads: string[];
   countries: { name: string; flag: string }[];
@@ -55,11 +58,7 @@ export const DEFAULT_METHODOLOGIES = [
 
 const LS_KEY = 'research-hub-settings';
 
-export function getSettings(): AppSettings {
-  const raw = localStorage.getItem(LS_KEY);
-  if (raw) {
-    try { return JSON.parse(raw); } catch { /* fall through */ }
-  }
+function getDefaults(): AppSettings {
   return {
     squads: [...DEFAULT_SQUADS],
     countries: [...DEFAULT_COUNTRIES],
@@ -68,8 +67,39 @@ export function getSettings(): AppSettings {
   };
 }
 
-export function saveSettings(settings: AppSettings) {
+let cachedSettings: AppSettings | null = null;
+
+export function getSettings(): AppSettings {
+  if (cachedSettings) return cachedSettings;
+  const raw = localStorage.getItem(LS_KEY);
+  if (raw) {
+    try { return JSON.parse(raw); } catch { /* fall through */ }
+  }
+  return getDefaults();
+}
+
+export async function saveSettings(settings: AppSettings) {
+  cachedSettings = settings;
   localStorage.setItem(LS_KEY, JSON.stringify(settings));
+
+  if (firebaseEnabled && db) {
+    const ref = doc(db, 'settings', 'global');
+    await setDoc(ref, settings);
+  }
+}
+
+export function subscribeSettings(callback: (s: AppSettings) => void): (() => void) | null {
+  if (!firebaseEnabled || !db) return null;
+
+  const ref = doc(db, 'settings', 'global');
+  return onSnapshot(ref, (snap) => {
+    if (snap.exists()) {
+      const data = snap.data() as AppSettings;
+      cachedSettings = data;
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+      callback(data);
+    }
+  });
 }
 
 export function getSquads(): string[] {
