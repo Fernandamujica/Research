@@ -280,226 +280,202 @@ export function HomePage() {
 
   const activeSquadFilter = activeTab === 'external' ? SQUAD_FILTER_EXTERNAL : SQUAD_FILTER_GBA;
 
+  const noFiltersActive = !search && countryFilter === 'all' && squadFilter === 'all' && !tagFilter;
+
   return (
     <div style={{ paddingBottom: '2rem' }}>
 
-      {/* ── Hero ──────────────────────────────────────── */}
+      {/* ── Hero (gradient background) ────────────────── */}
       <div
+        className="bg-gradient-hero"
         style={{
           textAlign: 'center',
-          padding: '2rem 1rem 1.5rem',
-          marginBottom: '1.5rem',
+          padding: '3rem 1rem 2.5rem',
+          margin: '-1.5rem -1.5rem 0',
         }}
       >
         <h1
           style={{
-            fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
-            fontWeight: 800,
-            letterSpacing: '-0.04em',
-            lineHeight: 1.15,
-            background: 'linear-gradient(135deg, var(--purple-700), var(--purple-400))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            marginBottom: '0.5rem',
+            fontSize: 'clamp(2rem, 5vw, 3rem)',
+            fontWeight: 700,
+            letterSpacing: '-0.03em',
+            lineHeight: 1.1,
+            marginBottom: '0.75rem',
           }}
         >
-          Research Hub
+          <span className="text-gradient-primary">Research Hub</span>
         </h1>
         <p
           style={{
-            fontSize: '1rem',
+            fontSize: '1.1rem',
             color: 'var(--gray-500)',
-            maxWidth: 480,
+            maxWidth: 520,
             margin: '0 auto',
             lineHeight: 1.6,
-            fontWeight: 400,
+            fontWeight: 300,
           }}
         >
-          All GBA research in one place. Browse, search, and share insights across teams and countries.
+          Repositorio centralizado de pesquisas do time de UX Research do GBA
         </p>
       </div>
 
-      {/* ── Tabs ──────────────────────────────────────── */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0.25rem',
-          marginBottom: '1.75rem',
-          background: 'var(--gray-100)',
-          borderRadius: 9999,
-          padding: '0.25rem',
-          width: 'fit-content',
-        }}
-      >
-        {([
-          { key: 'gba', label: 'GBA Research' },
-          { key: 'external', label: 'External Research' },
-        ] as const).map((tab) => {
-          const active = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab.key);
-                setSquadFilter('all');
-                setTagFilter('');
-              }}
-              style={{
-                padding: '0.5rem 1.125rem',
-                fontWeight: active ? 600 : 500,
-                fontSize: '0.85rem',
-                border: 'none',
-                borderRadius: 9999,
-                background: active ? 'white' : 'transparent',
-                boxShadow: active ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                cursor: 'pointer',
-                color: active ? 'var(--purple-700)' : 'var(--gray-500)',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 0.5rem' }}>
 
-      <div
-        style={{
-          marginBottom: '1.5rem',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.75rem',
-          alignItems: 'center',
-        }}
-      >
+      {/* ── Controls ──────────────────────────────────── */}
+      <div style={{ marginTop: '-1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+        {/* Tab Toggle */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.25rem',
+              background: 'var(--gray-100)',
+              borderRadius: 9999,
+              padding: '0.25rem',
+            }}
+          >
+            {([
+              { key: 'gba', label: 'GBA Research' },
+              { key: 'external', label: 'External Research' },
+            ] as const).map((tab) => {
+              const active = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab.key);
+                    setSquadFilter('all');
+                    setTagFilter('');
+                  }}
+                  style={{
+                    padding: '0.5rem 1.25rem',
+                    fontWeight: active ? 500 : 400,
+                    fontSize: '0.85rem',
+                    border: 'none',
+                    borderRadius: 9999,
+                    background: active ? 'white' : 'transparent',
+                    boxShadow: active ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    cursor: 'pointer',
+                    color: active ? 'var(--purple-700)' : 'var(--gray-500)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Search */}
         <input
           type="search"
-          placeholder="Search by title, tags, team, country, date, methodology, key learnings..."
+          placeholder="Search by title, tags, team, country, methodology, key learnings..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{
-            flex: '1',
-            minWidth: 200,
-            padding: '0.625rem 1rem',
-            borderRadius: 'var(--radius)',
-            border: '1px solid var(--gray-300)',
+            width: '100%',
+            padding: '0.75rem 1rem',
+            borderRadius: 9999,
+            border: '1px solid var(--gray-200)',
             background: 'var(--white)',
+            fontSize: '0.875rem',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
           }}
         />
-      </div>
 
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.5rem',
-          marginBottom: '1.5rem',
-        }}
-      >
-        {COUNTRIES.map((c) => (
-          <button
-            key={c.value}
-            type="button"
-            onClick={() => setCountryFilter(c.value as Country | 'all')}
-            style={{
-              padding: '0.5rem 0.75rem',
-              borderRadius: 'var(--radius)',
-              border:
-                countryFilter === c.value
-                  ? '2px solid var(--purple-600)'
-                  : '1px solid var(--gray-300)',
-              background:
-                countryFilter === c.value ? 'var(--purple-50)' : 'var(--white)',
-              fontWeight: countryFilter === c.value ? 600 : 400,
-            }}
-          >
-            {c.emoji} {c.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Squad filter */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.5rem',
-          marginBottom: '1.5rem',
-        }}
-      >
-        {activeSquadFilter.map((s) => {
-          const isActive = squadFilter === s.value;
-          const colors = s.value !== 'all' ? SQUAD_COLORS[s.value as Squad] : null;
-          return (
-          <button
-            key={s.value}
-            type="button"
-            onClick={() => setSquadFilter(s.value as Squad | 'all')}
-            style={{
-              padding: '0.375rem 0.625rem',
-              borderRadius: 9999,
-              border: isActive
-                ? `2px solid ${colors ? colors.text : 'var(--purple-600)'}`
-                : `1px solid ${colors ? colors.border : 'var(--gray-300)'}`,
-              background: isActive
-                ? (colors ? colors.bg : 'var(--purple-50)')
-                : 'var(--white)',
-              color: isActive
-                ? (colors ? colors.text : 'var(--purple-700)')
-                : (colors ? colors.text : 'var(--gray-600)'),
-              fontWeight: isActive ? 700 : 500,
-              fontSize: '0.8rem',
-            }}
-          >
-            {s.label}
-          </button>
-          );
-        })}
-      </div>
-
-      {/* Active tag filter pill */}
-      {tagFilter && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Filtering by tag:</span>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.25rem 0.625rem',
-              borderRadius: 9999,
-              background: 'var(--purple-600)',
-              color: 'white',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-            }}
-          >
-            {tagFilter}
+        {/* Active tag filter */}
+        {tagFilter && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--gray-500)' }}>Filtering by tag:</span>
             <button
               type="button"
               onClick={() => setTagFilter('')}
               style={{
-                background: 'none',
-                border: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.25rem 0.625rem',
+                borderRadius: 9999,
+                background: 'var(--purple-600)',
                 color: 'white',
-                cursor: 'pointer',
-                padding: 0,
-                lineHeight: 1,
                 fontSize: '0.75rem',
-                opacity: 0.8,
+                fontWeight: 500,
+                border: 'none',
+                cursor: 'pointer',
               }}
             >
-              ✕
+              {tagFilter} ✕
             </button>
-          </span>
-        </div>
-      )}
+          </div>
+        )}
 
-      {latestResearch.length > 0 && activeTab === 'gba' && (
-        <section style={{ marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '1rem', color: 'var(--gray-800)' }}>
-            Latest Research
+        {/* Country Filter — pill buttons */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          {COUNTRIES.map((c) => {
+            const active = countryFilter === c.value;
+            return (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => setCountryFilter(c.value as Country | 'all')}
+                className="card-shadow"
+                style={{
+                  padding: '0.5rem 0.875rem',
+                  borderRadius: 9999,
+                  border: active ? 'none' : '1px solid var(--gray-200)',
+                  background: active ? 'var(--purple-600)' : 'var(--white)',
+                  color: active ? 'white' : 'var(--gray-700)',
+                  fontWeight: active ? 500 : 400,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {c.emoji} {c.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Squad Filter — subtle dropdown */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.65rem', color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
+            Squad:
+          </span>
+          <select
+            value={squadFilter}
+            onChange={(e) => setSquadFilter(e.target.value as Squad | 'all')}
+            style={{
+              height: 32,
+              padding: '0 2rem 0 0.75rem',
+              borderRadius: 9999,
+              background: 'var(--white)',
+              border: '1px solid var(--gray-200)',
+              fontSize: '0.8rem',
+              color: 'var(--gray-700)',
+              cursor: 'pointer',
+              appearance: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 8px center',
+            }}
+          >
+            <option value="all">All Squads</option>
+            {activeSquadFilter.filter(s => s.value !== 'all').map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Latest Research — only when no filters active */}
+      {latestResearch.length > 0 && noFiltersActive && (
+        <section style={{ marginTop: '2.5rem', marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem' }}>
+            🕐 Latest Research
           </h2>
           <div
             style={{
@@ -599,10 +575,15 @@ export function HomePage() {
       )}
 
 
-      <section>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '1rem', color: 'var(--gray-800)' }}>
-          {activeTab === 'external' ? 'External Research' : 'All Research'}
-        </h2>
+      <section style={{ marginTop: '2.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 700 }}>
+            📚 {activeTab === 'external' ? 'External Research' : 'All Research'}
+          </h2>
+          <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontWeight: 300 }}>
+            {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+          </span>
+        </div>
         <div
           style={{
             display: 'grid',
@@ -742,18 +723,27 @@ export function HomePage() {
           ))}
         </div>
         {filtered.length === 0 && (
-          <p style={{ color: 'var(--gray-500)', marginTop: '1rem' }}>
-            No research matches your filters.
-          </p>
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '4rem 1rem',
+              background: 'var(--white)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--gray-200)',
+            }}
+            className="card-shadow"
+          >
+            <p style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🔍</p>
+            <p style={{ color: 'var(--gray-500)', fontWeight: 300 }}>
+              {activeTab === 'external'
+                ? 'No external research yet. Submit one using "New Research" and select External or Other as the squad.'
+                : 'No research found matching your filters.'}
+            </p>
+          </div>
         )}
       </section>
 
-      {/* Suggestions — at the bottom, only on GBA tab */}
-      {activeTab === 'external' && filtered.length === 0 && (
-        <p style={{ color: 'var(--gray-400)', fontSize: '0.875rem', marginTop: '1rem' }}>
-          No external research submitted yet. Upload a research from an external team using "New Research" and select External or Other as the squad.
-        </p>
-      )}
+      {/* Suggestions — GBA tab only */}
       <section style={{ marginTop: '2.5rem', display: activeTab === 'external' ? 'none' : undefined }}>
         <div
           style={{
@@ -1028,6 +1018,7 @@ export function HomePage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

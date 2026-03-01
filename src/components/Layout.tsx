@@ -40,41 +40,76 @@ export function Layout() {
           borderBottom: '1px solid rgba(0,0,0,0.06)',
         }}
       >
-        <Link
-          to="/"
-          style={{
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-          }}
-        >
-          <span
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <Link
+            to="/"
             style={{
-              fontSize: '1.35rem',
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              background: 'linear-gradient(135deg, var(--purple-600), var(--purple-400))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
             }}
           >
-            Research Hub
-          </span>
-          <span
-            style={{
-              fontSize: '0.65rem',
-              fontWeight: 600,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              color: 'var(--gray-400)',
-              borderLeft: '1px solid var(--gray-200)',
-              paddingLeft: '0.5rem',
-            }}
-          >
-            GBA
-          </span>
-        </Link>
+            <span
+              style={{
+                fontSize: '1.2rem',
+                fontWeight: 700,
+                letterSpacing: '-0.03em',
+                background: 'linear-gradient(135deg, var(--purple-600), var(--purple-400))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Research Hub
+            </span>
+            <span
+              style={{
+                fontSize: '0.6rem',
+                fontWeight: 500,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                color: 'var(--gray-400)',
+                borderLeft: '1px solid var(--gray-200)',
+                paddingLeft: '0.5rem',
+              }}
+            >
+              GBA
+            </span>
+          </Link>
+
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <Link
+              to="/"
+              style={{
+                padding: '0.375rem 0.75rem',
+                borderRadius: 9999,
+                fontSize: '0.8rem',
+                fontWeight: pathname === '/' ? 500 : 400,
+                color: pathname === '/' ? 'var(--purple-700)' : 'var(--gray-500)',
+                background: pathname === '/' ? 'var(--purple-50)' : 'transparent',
+                textDecoration: 'none',
+                transition: 'all 0.15s',
+              }}
+            >
+              Research
+            </Link>
+            <Link
+              to="/cross-geo"
+              style={{
+                padding: '0.375rem 0.75rem',
+                borderRadius: 9999,
+                fontSize: '0.8rem',
+                fontWeight: pathname === '/cross-geo' ? 500 : 400,
+                color: pathname === '/cross-geo' ? 'var(--purple-700)' : 'var(--gray-500)',
+                background: pathname === '/cross-geo' ? 'var(--purple-50)' : 'transparent',
+                textDecoration: 'none',
+                transition: 'all 0.15s',
+              }}
+            >
+              🌐 Cross-geo Insights
+            </Link>
+          </nav>
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
           {/* AI key settings button */}

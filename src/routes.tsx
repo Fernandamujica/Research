@@ -4,6 +4,7 @@ import { HomePage } from './pages/HomePage';
 import { ResearchDetailPage } from './pages/ResearchDetailPage';
 import { EditResearchPage } from './pages/EditResearchPage';
 import { SubmitResearchPage } from './pages/SubmitResearchPage';
+import { CrossGeoInsightsPage } from './pages/CrossGeoInsightsPage';
 
 const router = createHashRouter([
   {
@@ -14,6 +15,7 @@ const router = createHashRouter([
       { path: 'pesquisa/:id', element: <ResearchDetailPage /> },
       { path: 'pesquisa/:id/edit', element: <EditResearchPage /> },
       { path: 'submit', element: <SubmitResearchPage /> },
+      { path: 'cross-geo', element: <CrossGeoInsightsPage /> },
     ],
   },
 ]);

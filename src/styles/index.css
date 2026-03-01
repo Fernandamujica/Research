@@ -42,11 +42,26 @@ html {
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Roboto', system-ui, sans-serif;
   background: var(--gray-50);
   color: var(--gray-800);
   line-height: 1.5;
   min-height: 100vh;
+}
+
+.bg-gradient-hero {
+  background: linear-gradient(180deg, var(--purple-50) 0%, var(--gray-50) 100%);
+}
+
+.text-gradient-primary {
+  background: linear-gradient(135deg, var(--purple-700), var(--purple-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-shadow {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
 }
 
 #root {
