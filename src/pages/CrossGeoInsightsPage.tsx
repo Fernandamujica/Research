@@ -426,43 +426,84 @@ function getSectionTheme(heading: string) {
   return { bg: 'var(--white)', border: 'var(--gray-200)', text: 'var(--gray-800)' };
 }
 
+function isTableRow(line: string): boolean {
+  const t = line.trim();
+  if (!t.includes('|')) return false;
+  const parts = t.replace(/^\|/, '').replace(/\|$/, '').split('|');
+  return parts.length >= 2;
+}
+
+function isSeparatorRow(line: string): boolean {
+  const t = line.trim().replace(/^\|/, '').replace(/\|$/, '');
+  return t.split('|').every((c) => /^\s*[-:]{2,}\s*$/.test(c));
+}
+
+function extractCells(line: string): string[] {
+  return line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+}
+
+function renderTableBlock(rows: string[]): string {
+  if (rows.length === 0) return '';
+
+  let headerRow: string | null = null;
+  const dataRows: string[] = [];
+
+  if (rows.length >= 2 && isSeparatorRow(rows[1])) {
+    headerRow = rows[0];
+    for (let i = 2; i < rows.length; i++) {
+      if (!isSeparatorRow(rows[i])) dataRows.push(rows[i]);
+    }
+  } else if (rows.length >= 3 && isSeparatorRow(rows[2])) {
+    headerRow = rows[0];
+    for (let i = 1; i < rows.length; i++) {
+      if (!isSeparatorRow(rows[i])) dataRows.push(rows[i]);
+    }
+  } else {
+    headerRow = rows[0];
+    for (let i = 1; i < rows.length; i++) {
+      if (!isSeparatorRow(rows[i])) dataRows.push(rows[i]);
+    }
+  }
+
+  const thStyle = 'padding:0.625rem 0.875rem;background:var(--purple-600);color:white;font-weight:600;text-align:left;font-size:0.8rem';
+  const tdStyle = 'padding:0.5rem 0.875rem;border-bottom:1px solid var(--gray-100);font-size:0.8rem';
+
+  let html = '<div style="overflow-x:auto;margin:0.75rem 0"><table style="border-collapse:collapse;width:100%;border-radius:8px;overflow:hidden;font-size:0.8rem">';
+
+  if (headerRow) {
+    const cells = extractCells(headerRow);
+    html += `<thead><tr>${cells.map((c) => `<th style="${thStyle}">${applyInline(c)}</th>`).join('')}</tr></thead>`;
+  }
+
+  html += '<tbody>';
+  let even = false;
+  for (const row of dataRows) {
+    const cells = extractCells(row);
+    const bg = even ? 'background:var(--gray-50);' : '';
+    html += `<tr>${cells.map((c) => `<td style="${tdStyle};${bg}">${applyInline(c)}</td>`).join('')}</tr>`;
+    even = !even;
+  }
+  html += '</tbody></table></div>';
+
+  return html;
+}
+
 function bodyToHtml(body: string): string {
   const lines = body.split('\n');
   let html = '';
-  let inTable = false;
-  let isFirstTableRow = true;
+  let i = 0;
 
-  for (const line of lines) {
-    const trimmed = line.trim();
+  while (i < lines.length) {
+    const trimmed = lines[i].trim();
 
-    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-      const cells = trimmed.split('|').filter(Boolean).map((c) => c.trim());
-      const isSeparator = cells.every((c) => /^[-:]+$/.test(c));
-      if (isSeparator) continue;
-
-      if (!inTable) {
-        html += '<div style="overflow-x:auto;margin:0.75rem 0"><table style="border-collapse:collapse;width:100%;border-radius:8px;overflow:hidden;font-size:0.8rem">';
-        inTable = true;
-        isFirstTableRow = true;
+    if (isTableRow(trimmed)) {
+      const tableLines: string[] = [];
+      while (i < lines.length && (isTableRow(lines[i].trim()) || isSeparatorRow(lines[i].trim()))) {
+        tableLines.push(lines[i]);
+        i++;
       }
-
-      if (isFirstTableRow) {
-        html += `<thead><tr>${cells.map((c) =>
-          `<th style="padding:0.625rem 0.875rem;background:var(--purple-600);color:white;font-weight:600;text-align:left;font-size:0.8rem;white-space:nowrap">${applyInline(c)}</th>`
-        ).join('')}</tr></thead><tbody>`;
-        isFirstTableRow = false;
-      } else {
-        html += `<tr>${cells.map((c) =>
-          `<td style="padding:0.5rem 0.875rem;border-bottom:1px solid var(--gray-100);font-size:0.8rem">${applyInline(c)}</td>`
-        ).join('')}</tr>`;
-      }
+      html += renderTableBlock(tableLines);
       continue;
-    }
-
-    if (inTable) {
-      html += '</tbody></table></div>';
-      inTable = false;
-      isFirstTableRow = true;
     }
 
     if (trimmed.startsWith('### ')) {
@@ -482,10 +523,8 @@ function bodyToHtml(body: string): string {
     } else {
       html += `<p style="margin:0.25rem 0">${applyInline(trimmed)}</p>`;
     }
-  }
 
-  if (inTable) {
-    html += '</tbody></table></div>';
+    i++;
   }
 
   return html;
