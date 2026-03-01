@@ -349,14 +349,15 @@ export function HomePage() {
           </h1>
           <p
             style={{
-              fontSize: '1.1rem',
-              color: 'var(--gray-500)',
+              fontSize: '1.15rem',
+              color: 'var(--gray-700)',
               maxWidth: 520,
               lineHeight: 1.6,
-              fontWeight: 300,
+              fontWeight: 500,
+              letterSpacing: '-0.01em',
             }}
           >
-            Centralized repository for UX Research studies across GBA
+            Repository for UX Research studies across GBA.
           </p>
         </div>
       </div>
