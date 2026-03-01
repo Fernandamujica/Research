@@ -338,27 +338,15 @@ export function HomePage() {
         <div>
           <h1
             style={{
-              fontSize: 'clamp(2rem, 5vw, 3rem)',
-              fontWeight: 700,
-              letterSpacing: '-0.03em',
-              lineHeight: 1.1,
-              marginBottom: '0.5rem',
-            }}
-          >
-            <span className="text-gradient-primary">Research Hub</span>
-          </h1>
-          <p
-            style={{
-              fontSize: '1.15rem',
+              fontSize: 'clamp(1.4rem, 4vw, 2rem)',
+              fontWeight: 600,
               color: 'var(--gray-700)',
-              maxWidth: 520,
-              lineHeight: 1.6,
-              fontWeight: 500,
-              letterSpacing: '-0.01em',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.3,
             }}
           >
             Repository for UX Research studies across GBA.
-          </p>
+          </h1>
         </div>
       </div>
 
