@@ -256,26 +256,28 @@ export function HomePage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return researches.filter((r) => {
-      const rSquad = normalizeSquad(r.squad);
-      const matchCountry = countryFilter === 'all' || r.country === countryFilter;
-      const matchSquad = squadFilter === 'all' || rSquad === squadFilter;
-      const matchTag = !tagFilter || r.tags.some((t) => t.toLowerCase() === tagFilter.toLowerCase());
-      const squadLabel = rSquad ? (SQUAD_LABELS[rSquad] ?? '') : '';
-      const matchSearch =
-        !q ||
-        r.title.toLowerCase().includes(q) ||
-        r.description.toLowerCase().includes(q) ||
-        r.team.some((t) => t.toLowerCase().includes(q)) ||
-        r.tags.some((t) => t.toLowerCase().includes(q)) ||
-        r.country.toLowerCase().includes(q) ||
-        r.date.includes(q) ||
-        r.methodology.toLowerCase().includes(q) ||
-        r.keyLearnings.some((k) => k.toLowerCase().includes(q)) ||
-        squadLabel.toLowerCase().includes(q) ||
-        (r.researcher ? r.researcher.toLowerCase().includes(q) : false);
-      return matchCountry && matchSquad && matchTag && matchSearch;
-    });
+    return researches
+      .filter((r) => {
+        const rSquad = normalizeSquad(r.squad);
+        const matchCountry = countryFilter === 'all' || r.country === countryFilter;
+        const matchSquad = squadFilter === 'all' || rSquad === squadFilter;
+        const matchTag = !tagFilter || r.tags.some((t) => t.toLowerCase() === tagFilter.toLowerCase());
+        const squadLabel = rSquad ? (SQUAD_LABELS[rSquad] ?? '') : '';
+        const matchSearch =
+          !q ||
+          r.title.toLowerCase().includes(q) ||
+          r.description.toLowerCase().includes(q) ||
+          r.team.some((t) => t.toLowerCase().includes(q)) ||
+          r.tags.some((t) => t.toLowerCase().includes(q)) ||
+          r.country.toLowerCase().includes(q) ||
+          r.date.includes(q) ||
+          r.methodology.toLowerCase().includes(q) ||
+          r.keyLearnings.some((k) => k.toLowerCase().includes(q)) ||
+          squadLabel.toLowerCase().includes(q) ||
+          (r.researcher ? r.researcher.toLowerCase().includes(q) : false);
+        return matchCountry && matchSquad && matchTag && matchSearch;
+      })
+      .sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : (b.createdAt > a.createdAt ? 1 : -1)));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [researches, search, countryFilter, squadFilter, tagFilter]);
 

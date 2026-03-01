@@ -4,7 +4,7 @@ import { COUNTRY_EMOJI, COUNTRY_LABELS, SQUAD_LABELS } from '../types/research';
 import type { Country } from '../types/research';
 import { getApiKey } from '../utils/aiGenerate';
 
-const COUNTRY_LIST: Country[] = ['brasil', 'mexico', 'usa', 'colombia'];
+const COUNTRY_LIST: Country[] = ['brasil', 'mexico', 'usa', 'colombia', 'global'];
 
 const COUNTRY_COLORS: Record<string, { bg: string; border: string; text: string; accent: string }> = {
   Brasil: { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', accent: '#16a34a' },
@@ -44,7 +44,8 @@ export function CrossGeoInsightsPage() {
             .map(
               (r) => {
                 const ext = r.squad && externalSquads.includes(r.squad) ? ' [EXTERNAL]' : '';
-                return `- "${r.title}"${ext} (${r.squad ? SQUAD_LABELS[r.squad] : 'N/A'}, ${r.date})\n  Description: ${r.description}\n  Key learnings: ${r.keyLearnings.join('; ')}`;
+                const squadName = r.squad ? (SQUAD_LABELS[r.squad] ?? r.squad) : 'N/A';
+                return `- "${r.title}"${ext} (${squadName}, ${r.date})\n  Description: ${r.description}\n  Key learnings: ${r.keyLearnings.join('; ')}`;
               }
             )
             .join('\n');
@@ -149,19 +150,24 @@ IMPORTANT formatting rules:
               { role: 'user', content: prompt },
             ],
             temperature: 0.4,
-            max_tokens: 2048,
+            max_tokens: mode === 'compare' ? 4096 : 2048,
           }),
         }
       );
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message ?? `Gemini error ${res.status}`);
+        const errBody = await res.text().catch(() => '');
+        let msg = `Gemini error ${res.status}`;
+        try {
+          const parsed = JSON.parse(errBody);
+          msg = parsed?.error?.message ?? msg;
+        } catch { /* use default */ }
+        throw new Error(msg);
       }
 
       const data = await res.json();
       const text = data?.choices?.[0]?.message?.content ?? '';
-      if (!text) throw new Error('AI returned no content.');
+      if (!text) throw new Error('AI returned no content. Try again or select different countries.');
       setResult(text);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unexpected error.');
@@ -294,6 +300,14 @@ IMPORTANT formatting rules:
                 );
               })}
             </div>
+            {compareCountries.length > 0 && (
+              <p style={{ fontSize: '0.75rem', color: 'var(--gray-400)', marginBottom: '0.75rem' }}>
+                {compareCountries.map((c) => {
+                  const count = researches.filter((r) => r.country === c).length;
+                  return `${COUNTRY_EMOJI[c]} ${COUNTRY_LABELS[c]}: ${count} studies`;
+                }).join('  ·  ')}
+              </p>
+            )}
             <input
               type="text"
               value={compareTopic}
