@@ -1,14 +1,14 @@
-import type { Squad, Researcher, Country } from '../types/research';
+import type { Squad, Country } from '../types/research';
 
 export interface PlannedResearch {
   id: string;
   title: string;
   question: string;
   squad: Squad;
-  researcher: Researcher;
+  researcher: string;
   countries: Country[];
   tags: string[];
-  month?: string; // e.g. "Jan 2026"
+  month?: string;
 }
 
 export const PLANNED_RESEARCH: PlannedResearch[] = [

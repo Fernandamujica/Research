@@ -41,20 +41,7 @@ export function Layout() {
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              Research Hub
-            </span>
-            <span
-              style={{
-                fontSize: '0.6rem',
-                fontWeight: 500,
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                color: 'var(--gray-400)',
-                borderLeft: '1px solid var(--gray-200)',
-                paddingLeft: '0.5rem',
-              }}
-            >
-              GBA
+              GBA Research Hub
             </span>
           </Link>
 
@@ -88,6 +75,21 @@ export function Layout() {
               }}
             >
               🌐 Cross-geo Insights
+            </Link>
+            <Link
+              to="/settings"
+              style={{
+                padding: '0.375rem 0.75rem',
+                borderRadius: 9999,
+                fontSize: '0.8rem',
+                fontWeight: pathname === '/settings' ? 500 : 400,
+                color: pathname === '/settings' ? 'var(--purple-700)' : 'var(--gray-400)',
+                background: pathname === '/settings' ? 'var(--purple-50)' : 'transparent',
+                textDecoration: 'none',
+                transition: 'all 0.15s',
+              }}
+            >
+              ⚙️
             </Link>
           </nav>
         </div>

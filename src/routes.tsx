@@ -5,6 +5,7 @@ import { ResearchDetailPage } from './pages/ResearchDetailPage';
 import { EditResearchPage } from './pages/EditResearchPage';
 import { SubmitResearchPage } from './pages/SubmitResearchPage';
 import { CrossGeoInsightsPage } from './pages/CrossGeoInsightsPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 const router = createHashRouter([
   {
@@ -12,10 +13,11 @@ const router = createHashRouter([
     element: <Layout />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'pesquisa/:id', element: <ResearchDetailPage /> },
-      { path: 'pesquisa/:id/edit', element: <EditResearchPage /> },
+      { path: 'research/:id', element: <ResearchDetailPage /> },
+      { path: 'research/:id/edit', element: <EditResearchPage /> },
       { path: 'submit', element: <SubmitResearchPage /> },
       { path: 'cross-geo', element: <CrossGeoInsightsPage /> },
+      { path: 'settings', element: <SettingsPage /> },
     ],
   },
 ]);

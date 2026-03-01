@@ -103,7 +103,7 @@ export function ResearchDetailPage() {
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
           <Link
-            to={`/pesquisa/${research.id}/edit`}
+            to={`/research/${research.id}/edit`}
             style={{
               padding: '0.5rem 1rem',
               borderRadius: 'var(--radius)',

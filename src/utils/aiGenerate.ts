@@ -1,11 +1,9 @@
-// ── API key ────────────────────────────────────────────────────────────────
-const DEFAULT_KEY = 'AIzaSyDVRBl6Q8DD3mj3R3qIXgkhkl8FABVLpBk';
+import { getGeminiApiKey } from './settings';
 
 export function getApiKey(): string {
-  return DEFAULT_KEY;
+  return getGeminiApiKey();
 }
 
-// ── Gemini response types ──────────────────────────────────────────────────
 export interface AiFilledFields {
   title?: string;
   description?: string;
@@ -18,19 +16,80 @@ export interface AiFilledFields {
   keyLearnings?: string[];
 }
 
-// ── Gemini AI call ─────────────────────────────────────────────────────────
-async function callGemini(prompt: string): Promise<string> {
+const TOOL_SCHEMA = {
+  type: 'function' as const,
+  function: {
+    name: 'extract_research_data',
+    description: 'Extract structured data from a UX research document',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Research title verbatim from the document' },
+        description: { type: 'string', description: '2-3 sentence summary of the research goal and main finding' },
+        date: { type: 'string', description: 'Date in YYYY-MM-DD format if found' },
+        country: {
+          type: 'string',
+          enum: ['brasil', 'mexico', 'usa', 'colombia', 'global'],
+          description: 'Most relevant country',
+        },
+        squad: {
+          type: 'string',
+          enum: ['money-in', 'mb-account-xp', 'payments-assistant', 'troy', 'tout', 'cross-gba', 'payments-core-infra', 'external', 'other'],
+          description: 'Squad name if clearly mentioned',
+        },
+        methodology: { type: 'string', description: 'Short description of research method (e.g. "Qualitative interviews, n=20")' },
+        team: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of people found as authors/researchers',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '4-6 lowercase short tags (e.g. "CSAT", "transfers", "Colombia")',
+        },
+        keyLearnings: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '3-5 concise actionable insights, data-backed when possible',
+        },
+      },
+      required: ['title', 'description', 'tags', 'keyLearnings'],
+    },
+  },
+};
+
+const SYSTEM_PROMPT = `You are a UX Research document parser for Nubank's GBA (Global Banking & Account) team.
+Your job is to extract structured data from research documents.
+Always use the extract_research_data tool to return your analysis.
+Be concise and factual. Extract only what is clearly present in the document.
+For tags, use short lowercase terms. For key learnings, write actionable insights.`;
+
+async function callGeminiWithTools(pdfText: string, title: string): Promise<AiFilledFields> {
   const key = getApiKey();
-  if (!key) throw new Error('NO_API_KEY');
+  if (!key) throw new Error('No Gemini API key configured. Go to Settings to add your key.');
+
+  const context = pdfText.trim()
+    ? `Research document content:\n\n${pdfText.slice(0, 15000)}`
+    : `Research title: "${title}"`;
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+        model: 'gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: `Parse this research document and extract all structured data:\n\n${context}` },
+        ],
+        tools: [TOOL_SCHEMA],
+        tool_choice: { type: 'function', function: { name: 'extract_research_data' } },
+        temperature: 0.2,
       }),
     }
   );
@@ -42,67 +101,29 @@ async function callGemini(prompt: string): Promise<string> {
   }
 
   const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
+
+  if (toolCall?.function?.arguments) {
+    return JSON.parse(toolCall.function.arguments) as AiFilledFields;
+  }
+
+  const fallbackText = data?.choices?.[0]?.message?.content ?? '';
+  if (fallbackText) {
+    const match = fallbackText.match(/\{[\s\S]*\}/);
+    if (match) return JSON.parse(match[0]) as AiFilledFields;
+  }
+
+  throw new Error('AI returned no structured data');
 }
 
-// ── Main: auto-fill from PDF text or title ─────────────────────────────────
 export async function autoFillFromPdf(params: {
   pdfText: string;
   title: string;
 }): Promise<AiFilledFields> {
-  const { pdfText, title } = params;
-
-  const context = pdfText.trim()
-    ? `Research document content (first ~6000 chars):\n${pdfText.slice(0, 6000)}`
-    : `Research title: "${title}"`;
-
-  const prompt = `You are a UX research analyst at Nubank. Based on the following research material, extract structured information.
-
-${context}
-
-Return ONLY a valid JSON object with exactly these keys (no markdown, no extra text):
-{
-  "title": "Research title if clearly stated, else null",
-  "description": "2-3 sentence summary of what this research is about, its goal and main finding",
-  "date": "Date in YYYY-MM-DD format if found, else null",
-  "country": "One of: brasil, mexico, usa, colombia, global — whichever is most relevant, else null",
-  "squad": "One of the exact keys: money-in, mb-account-xp, payments-assistant, troy, tout, cross-gba, payments-core-infra — if clearly mentioned, else null",
-  "methodology": "Short description of research method (e.g. 'Qualitative interviews, n=20'), else null",
-  "team": ["Person name 1", "Person name 2"],
-  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
-  "keyLearnings": [
-    "Concise actionable insight 1",
-    "Concise actionable insight 2",
-    "Concise actionable insight 3",
-    "Concise actionable insight 4"
-  ]
+  return callGeminiWithTools(params.pdfText, params.title);
 }
 
-Rules:
-- title: extract verbatim from the document if present; null if not clearly stated
-- description: plain text, 2-3 sentences, no bullet points
-- date: YYYY-MM-DD format only; null if not found
-- country: must be exactly one of the listed values; null if unclear
-- squad: must be exactly one of the listed key values; null if not mentioned
-- methodology: 1 sentence; null if not found
-- team: list of people names found as authors/researchers; empty array [] if none found
-- tags: 4-6 lowercase short tags (e.g. "CSAT", "transfers", "Colombia", "qualitative")
-- keyLearnings: 3-5 sentences, each starting with the main insight, data-backed when possible`;
-
-  const raw = await callGemini(prompt);
-
-  try {
-    // Extract JSON even if Gemini wraps it in markdown code blocks
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error('No JSON found in response');
-    const parsed = JSON.parse(match[0]) as AiFilledFields;
-    return parsed;
-  } catch {
-    throw new Error(`Could not parse AI response: ${raw.slice(0, 200)}`);
-  }
-}
-
-// ── Local fallback: extractive summarization (no API needed) ───────────────
+// Local fallback: extractive summarization (no API needed)
 const RESEARCH_KEYWORDS = [
   'consumers', 'consumer', 'users', 'user', 'customers', 'customer',
   'prefer', 'preferred', 'behavior', 'behaviour', 'insight', 'insights',

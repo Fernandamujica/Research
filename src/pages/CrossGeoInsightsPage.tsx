@@ -47,7 +47,7 @@ export function CrossGeoInsightsPage() {
   const runAnalysis = useCallback(async () => {
     const key = getApiKey();
     if (!key) {
-      setError('Configure a Gemini API key (⚙️ in the header) to use Cross-geo Insights.');
+      setError('No Gemini API key configured. Go to Settings (⚙️) to add your key.');
       return;
     }
 
@@ -96,13 +96,21 @@ Write in a clear, professional tone. Use markdown tables where helpful. Be speci
       }
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+        'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
+            model: 'gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: 'You are a senior UX research analyst at Nubank. Write in clear, professional markdown.' },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.4,
+            max_tokens: 2048,
           }),
         }
       );
@@ -113,7 +121,7 @@ Write in a clear, professional tone. Use markdown tables where helpful. Be speci
       }
 
       const data = await res.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      const text = data?.choices?.[0]?.message?.content ?? '';
       if (!text) throw new Error('AI returned no content.');
       setResult(text);
     } catch (err: unknown) {

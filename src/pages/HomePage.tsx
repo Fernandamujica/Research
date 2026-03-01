@@ -6,12 +6,11 @@ import {
   COUNTRY_LABELS,
   SQUAD_LABELS,
   SQUAD_COLORS,
-  RESEARCHERS,
   type Country,
   type Squad,
-  type Researcher,
 } from '../types/research';
 import { PLANNED_RESEARCH, type PlannedResearch } from '../data/plannedResearch';
+import { getResearchers } from '../utils/settings';
 
 const SQUADS = Object.keys(SQUAD_LABELS) as Squad[];
 const COUNTRY_LIST = Object.keys(COUNTRY_LABELS) as Country[];
@@ -30,7 +29,7 @@ function loadCustom(): PlannedResearch[] {
 
 const COUNTRIES: { value: Country | 'all'; label: string; emoji: string }[] = [
   { value: 'all', label: 'All Countries', emoji: '' },
-  { value: 'brasil', label: 'Brasil', emoji: '🇧🇷' },
+  { value: 'brasil', label: 'Brazil', emoji: '🇧🇷' },
   { value: 'mexico', label: 'Mexico', emoji: '🇲🇽' },
   { value: 'usa', label: 'USA', emoji: '🇺🇸' },
   { value: 'colombia', label: 'Colombia', emoji: '🇨🇴' },
@@ -183,7 +182,7 @@ export function HomePage() {
   const [showAddSuggestion, setShowAddSuggestion] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newSquad, setNewSquad] = useState<Squad>('cross-gba');
-  const [newResearcher, setNewResearcher] = useState<Researcher>('Yas');
+  const [newResearcher, setNewResearcher] = useState('Yas');
   const [newCountries, setNewCountries] = useState<Country[]>(['brasil']);
 
   const deleteSuggestion = useCallback((id: string) => {
@@ -289,34 +288,48 @@ export function HomePage() {
       <div
         className="bg-gradient-hero"
         style={{
-          textAlign: 'center',
-          padding: '3rem 1rem 2.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1.5rem',
+          padding: '2.5rem 1.5rem 2rem',
           margin: '-1.5rem -1.5rem 0',
         }}
       >
-        <h1
+        <img
+          src={`${import.meta.env.BASE_URL}logo.png`}
+          alt="GBA Research"
           style={{
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            fontWeight: 700,
-            letterSpacing: '-0.03em',
-            lineHeight: 1.1,
-            marginBottom: '0.75rem',
+            height: 160,
+            width: 160,
+            objectFit: 'contain',
+            flexShrink: 0,
           }}
-        >
-          <span className="text-gradient-primary">Research Hub</span>
-        </h1>
-        <p
-          style={{
-            fontSize: '1.1rem',
-            color: 'var(--gray-500)',
-            maxWidth: 520,
-            margin: '0 auto',
-            lineHeight: 1.6,
-            fontWeight: 300,
-          }}
-        >
-          Repositorio centralizado de pesquisas do time de UX Research do GBA
-        </p>
+        />
+        <div>
+          <h1
+            style={{
+              fontSize: 'clamp(2rem, 5vw, 3rem)',
+              fontWeight: 700,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.1,
+              marginBottom: '0.5rem',
+            }}
+          >
+            <span className="text-gradient-primary">Research Hub</span>
+          </h1>
+          <p
+            style={{
+              fontSize: '1.1rem',
+              color: 'var(--gray-500)',
+              maxWidth: 520,
+              lineHeight: 1.6,
+              fontWeight: 300,
+            }}
+          >
+            Centralized repository for UX Research studies across GBA
+          </p>
+        </div>
       </div>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 0.5rem' }}>
@@ -487,7 +500,7 @@ export function HomePage() {
             {latestResearch.map((r) => (
               <Link
                 key={r.id}
-                to={`/pesquisa/${r.id}`}
+                to={`/research/${r.id}`}
                 style={{
                   display: 'block',
                   background: 'var(--white)',
@@ -703,7 +716,7 @@ export function HomePage() {
                 ))}
               </div>
               <Link
-                to={`/pesquisa/${r.id}`}
+                to={`/research/${r.id}`}
                 style={{
                   display: 'inline-block',
                   marginTop: '1rem',
@@ -760,7 +773,7 @@ export function HomePage() {
               📋 Research Suggestions
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: '0.2rem' }}>
-              Planned projects from the 2026 agenda not yet submitted
+              Planned projects from the 2026 agenda — not yet submitted
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -942,7 +955,7 @@ export function HomePage() {
             </label>
             <select
               value={newResearcher}
-              onChange={(e) => setNewResearcher(e.target.value as Researcher)}
+              onChange={(e) => setNewResearcher(e.target.value)}
               style={{
                 width: '100%',
                 padding: '0.625rem 1rem',
@@ -951,7 +964,7 @@ export function HomePage() {
                 marginBottom: '0.75rem',
               }}
             >
-              {RESEARCHERS.map((r) => (
+              {getResearchers().map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>

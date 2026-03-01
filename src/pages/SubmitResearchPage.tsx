@@ -1,31 +1,21 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useResearch } from '../context/ResearchContext';
-import type { Country, Squad, Researcher } from '../types/research';
+import type { Country, Squad } from '../types/research';
 import {
   COUNTRY_EMOJI,
   COUNTRY_LABELS,
   SQUAD_LABELS,
-  RESEARCHERS,
 } from '../types/research';
 import type { PlannedResearch } from '../data/plannedResearch';
 import { extractKeyLearningsFromText, autoFillFromPdf, getApiKey } from '../utils/aiGenerate';
-import { extractPdfText } from '../utils/extractPdfText';
+import { extractPdfText, extractPdfCover } from '../utils/extractPdfText';
+import { getResearchers } from '../utils/settings';
+import { getGooglePickerConfig } from '../utils/settings';
+import { openGooglePicker } from '../utils/googlePicker';
 
 const COUNTRIES: Country[] = ['brasil', 'mexico', 'usa', 'colombia', 'global'];
 const SQUADS = Object.keys(SQUAD_LABELS) as Squad[];
-
-function generateDescriptionFromFileName(fileName: string): string {
-  const lower = fileName.toLowerCase();
-  const parts: string[] = [];
-  if (lower.includes('consumer')) parts.push('Consumer insights and behavior');
-  if (lower.includes('digital')) parts.push('digital channels');
-  if (lower.includes('market')) parts.push('market analysis');
-  if (lower.includes('brand')) parts.push('brand perception');
-  if (lower.includes('survey')) parts.push('Survey-based research');
-  if (parts.length === 0) parts.push('Research findings and key insights');
-  return parts.join('. ') + '.';
-}
 
 
 interface FileEntry {
@@ -278,7 +268,7 @@ export function SubmitResearchPage() {
   const [date, setDate] = useState('');
   const [country, setCountry] = useState<Country>(suggestion?.countries[0] ?? 'brasil');
   const [squad, setSquad] = useState<Squad | ''>(suggestion?.squad ?? '');
-  const [researcher, setResearcher] = useState<Researcher | ''>(suggestion?.researcher ?? '');
+  const [researcher, setResearcher] = useState<string>(suggestion?.researcher ?? '');
   const [methodology, setMethodology] = useState('');
   const [team, setTeam] = useState<string[]>(
     suggestion?.researcher ? [suggestion.researcher] : ['']
@@ -394,11 +384,7 @@ export function SubmitResearchPage() {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unexpected error.';
-      if (msg === 'NO_API_KEY') {
-        setAiError('AI error — please try again.');
-      } else {
-        setAiError(`AI error: ${msg}`);
-      }
+      setAiError(`AI error: ${msg}`);
     } finally {
       setAiLoading(false);
     }
@@ -410,14 +396,18 @@ export function SubmitResearchPage() {
   }, [runGeneration, pptFileObj, title, description, methodology]);
 
   const handlePptFile = useCallback(
-    (entry: FileEntry, raw: File) => {
-      const newDesc = !description.trim() ? generateDescriptionFromFileName(entry.name) : description;
+    async (entry: FileEntry, raw: File) => {
       setPptFile(entry);
       setPptFileObj(raw);
-      if (!description.trim()) setDescription(newDesc);
-      runGeneration(raw, title, newDesc, methodology);
+
+      if (raw.name.toLowerCase().endsWith('.pdf')) {
+        const cover = await extractPdfCover(raw);
+        if (cover) {
+          setScreenshots((prev) => prev.length === 0 ? [cover] : prev);
+        }
+      }
     },
-    [description, title, methodology, runGeneration]
+    []
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -519,6 +509,61 @@ export function SubmitResearchPage() {
       )}
 
       <form onSubmit={handleSubmit}>
+        {/* ── File Upload + AI Fill ───────────────────────── */}
+        <section style={sectionStyle}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+            Upload Research PDF
+          </h2>
+          <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '1rem' }}>
+            Upload a PDF and the AI will extract the cover image and can auto-fill all fields.
+          </p>
+          <FileUploadZone
+            label="Research PDF / PPT"
+            accept=".ppt,.pptx,.pdf"
+            file={pptFile}
+            onFile={handlePptFile}
+            onRemove={() => { setPptFile(null); setPptFileObj(null); }}
+          />
+          {pptFile && (
+            <button
+              type="button"
+              onClick={autoGenerateLearnings}
+              disabled={aiLoading}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius)',
+                border: 'none',
+                background: aiLoading ? 'var(--gray-200)' : 'linear-gradient(135deg, var(--purple-600), var(--purple-700))',
+                color: aiLoading ? 'var(--gray-500)' : 'white',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: aiLoading ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                marginTop: '0.5rem',
+                transition: 'all 0.2s',
+              }}
+            >
+              {aiLoading ? (
+                <>
+                  <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
+                  Reading PDF with AI...
+                </>
+              ) : (
+                <>✨ Fill with AI</>
+              )}
+            </button>
+          )}
+          {aiError && (
+            <p style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: '#fef2f2', borderRadius: 'var(--radius)', border: '1px solid #fecaca' }}>
+              {aiError}
+            </p>
+          )}
+        </section>
+
         {/* ── Basic Information ─────────────────────────── */}
         <section style={sectionStyle}>
           <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>
@@ -598,11 +643,11 @@ export function SubmitResearchPage() {
           <label style={labelStyle}>Lead Researcher</label>
           <select
             value={researcher}
-            onChange={(e) => setResearcher(e.target.value as Researcher | '')}
+            onChange={(e) => setResearcher(e.target.value)}
             style={inputStyle}
           >
             <option value="">— Select researcher —</option>
-            {RESEARCHERS.map((r) => (
+            {getResearchers().map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>
@@ -702,7 +747,9 @@ export function SubmitResearchPage() {
             Research Images
           </h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '1rem' }}>
-            Upload up to 3 screenshots or images from the research (slides, charts, etc.).
+            {screenshots.length > 0 && pptFile
+              ? 'PDF cover extracted automatically. Add up to 2 more images.'
+              : 'Upload up to 3 screenshots or images from the research (slides, charts, etc.).'}
           </p>
           <ImageUploadGrid images={screenshots} onChange={setScreenshots} />
         </section>
@@ -713,9 +760,127 @@ export function SubmitResearchPage() {
             Presentation Link
           </h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '1rem' }}>
-            Paste a Google Slides, Notion, or any public link to the full presentation.
+            Pick a file from Google Drive or paste any link (Slides, Docs, Notion, etc.).
           </p>
-          <label style={labelStyle}>URL</label>
+
+          {presentationUrl ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.75rem 1rem',
+                background: 'var(--purple-50)',
+                border: '1px solid var(--purple-300)',
+                borderRadius: 'var(--radius)',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <span style={{ fontSize: '1.1rem' }}>
+                {presentationUrl.includes('presentation') ? '📊' :
+                 presentationUrl.includes('document') ? '📝' :
+                 presentationUrl.includes('spreadsheet') ? '📈' : '🔗'}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontWeight: 500,
+                    fontSize: '0.85rem',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {presentationUrl}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPresentationUrl('')}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--gray-300)',
+                  background: 'var(--white)',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+              {(() => {
+                const pickerCfg = getGooglePickerConfig();
+                if (!pickerCfg) return null;
+                return (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const result = await openGooglePicker(pickerCfg.clientId, pickerCfg.apiKey);
+                        if (result) setPresentationUrl(result.url);
+                      } catch (err: unknown) {
+                        const msg = err instanceof Error ? err.message : 'Failed to open picker';
+                        setErrors((v) => ({ ...v, presentation: msg }));
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      minWidth: 180,
+                      padding: '0.75rem 1rem',
+                      borderRadius: 'var(--radius)',
+                      border: '2px solid var(--purple-200)',
+                      background: 'var(--white)',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      color: 'var(--purple-700)',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--purple-50)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--white)'; }}
+                  >
+                    <img
+                      src="https://www.gstatic.com/images/branding/product/1x/drive_2020q4_48dp.png"
+                      alt=""
+                      style={{ width: 20, height: 20 }}
+                    />
+                    Pick from Google Drive
+                  </button>
+                );
+              })()}
+              <button
+                type="button"
+                onClick={() => window.open('https://drive.google.com', '_blank')}
+                style={{
+                  flex: 1,
+                  minWidth: 160,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--gray-200)',
+                  background: 'var(--white)',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  color: 'var(--gray-600)',
+                }}
+              >
+                Open Google Drive ↗
+              </button>
+            </div>
+          )}
+
+          <label style={labelStyle}>Or paste URL directly</label>
           <input
             type="url"
             value={presentationUrl}
@@ -723,22 +888,18 @@ export function SubmitResearchPage() {
             placeholder="https://docs.google.com/presentation/d/..."
             style={inputStyle}
           />
+          {errors.presentation && (
+            <p style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '-0.5rem' }}>{errors.presentation}</p>
+          )}
         </section>
 
-        {/* ── File Uploads ──────────────────────────────── */}
+        {/* ── Additional File Upload ─────────────────────── */}
         <section style={sectionStyle}>
           <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>
-            File Uploads
+            Research Plan (optional)
           </h2>
           <FileUploadZone
-            label="PPT / PDF Upload"
-            accept=".ppt,.pptx,.pdf"
-            file={pptFile}
-            onFile={handlePptFile}
-            onRemove={() => { setPptFile(null); setPptFileObj(null); }}
-          />
-          <FileUploadZone
-            label="Research Plan Upload (optional)"
+            label="Research Plan Upload"
             accept=".pdf,.doc,.docx,.ppt,.pptx"
             file={planFile}
             onFile={(entry) => setPlanFile(entry)}
@@ -753,7 +914,7 @@ export function SubmitResearchPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: aiError ? '0.5rem' : '1rem',
+              marginBottom: '1rem',
               flexWrap: 'wrap',
               gap: '0.5rem',
             }}
@@ -761,48 +922,33 @@ export function SubmitResearchPage() {
             <div>
               <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>Key Learnings (optional)</h2>
               <p style={{ fontSize: '0.75rem', color: 'var(--gray-400)', marginTop: '0.125rem' }}>
-                {aiLoading
-                  ? 'Reading PDF with Gemini AI…'
-                  : 'AI fills title, date, team, squad, description, tags & learnings on upload. Edit freely.'}
+                Auto-filled by AI when you click "Fill with AI". Edit freely or add manually.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={autoGenerateLearnings}
-              disabled={aiLoading}
-              title="Regenerate key learnings with AI"
-              style={{
-                padding: '0.375rem 0.875rem',
-                borderRadius: 'var(--radius)',
-                border: '1px solid var(--purple-300)',
-                background: aiLoading ? 'var(--gray-100)' : 'var(--purple-50)',
-                color: aiLoading ? 'var(--gray-400)' : 'var(--purple-700)',
-                fontWeight: 500,
-                fontSize: '0.875rem',
-                cursor: aiLoading ? 'wait' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-              }}
-            >
-              {aiLoading ? (
-                <>
-                  <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
-                  Generating…
-                </>
-              ) : (
-                <>✨ Regenerate</>
-              )}
-            </button>
+            {pptFile && (
+              <button
+                type="button"
+                onClick={autoGenerateLearnings}
+                disabled={aiLoading}
+                title="Re-run AI extraction"
+                style={{
+                  padding: '0.375rem 0.875rem',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--purple-300)',
+                  background: aiLoading ? 'var(--gray-100)' : 'var(--purple-50)',
+                  color: aiLoading ? 'var(--gray-400)' : 'var(--purple-700)',
+                  fontWeight: 500,
+                  fontSize: '0.8rem',
+                  cursor: aiLoading ? 'wait' : 'pointer',
+                }}
+              >
+                {aiLoading ? '⏳ Generating…' : '✨ Re-fill'}
+              </button>
+            )}
           </div>
-          {aiError && (
-            <p style={{ fontSize: '0.8rem', color: '#dc2626', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', background: '#fef2f2', borderRadius: 'var(--radius)', border: '1px solid #fecaca' }}>
-              {aiError}
-            </p>
-          )}
-          {keyLearnings.length === 0 && !aiError && !aiLoading && (
+          {keyLearnings.length === 0 && !aiLoading && (
             <p style={{ fontSize: '0.875rem', color: 'var(--gray-400)', marginBottom: '0.75rem' }}>
-              Key learnings will appear here automatically after you upload a PDF. You can also add them manually.
+              Upload a PDF and click "Fill with AI" to auto-extract learnings, or add them manually below.
             </p>
           )}
           {keyLearnings.map((learning, i) => (

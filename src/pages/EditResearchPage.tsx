@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useResearch } from '../context/ResearchContext';
-import type { Country, Squad, Researcher } from '../types/research';
-import { COUNTRY_EMOJI, COUNTRY_LABELS, SQUAD_LABELS, RESEARCHERS } from '../types/research';
+import type { Country, Squad } from '../types/research';
+import { COUNTRY_EMOJI, COUNTRY_LABELS, SQUAD_LABELS } from '../types/research';
+import { getResearchers, getGooglePickerConfig } from '../utils/settings';
+import { openGooglePicker } from '../utils/googlePicker';
 
 const COUNTRIES: Country[] = ['brasil', 'mexico', 'usa', 'colombia', 'global'];
 const SQUADS = Object.keys(SQUAD_LABELS) as Squad[];
@@ -126,7 +128,7 @@ export function EditResearchPage() {
   const [date, setDate] = useState('');
   const [country, setCountry] = useState<Country>('brasil');
   const [squad, setSquad] = useState<Squad | ''>('');
-  const [researcher, setResearcher] = useState<Researcher | ''>('');
+  const [researcher, setResearcher] = useState<string>('');
   const [methodology, setMethodology] = useState('');
   const [team, setTeam] = useState<string[]>(['']);
   const [tags, setTags] = useState<string[]>(['']);
@@ -191,7 +193,7 @@ export function EditResearchPage() {
       pptScreenshots: screenshots,
       presentationUrl: presentationUrl.trim() || undefined,
     });
-    navigate(`/pesquisa/${id}`);
+    navigate(`/research/${id}`);
   };
 
   if (!research) {
@@ -301,11 +303,11 @@ export function EditResearchPage() {
           <label style={labelStyle}>Lead Researcher</label>
           <select
             value={researcher}
-            onChange={(e) => setResearcher(e.target.value as Researcher | '')}
+            onChange={(e) => setResearcher(e.target.value)}
             style={inputStyle}
           >
             <option value="">— Select researcher —</option>
-            {RESEARCHERS.map((r) => (
+            {getResearchers().map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>
@@ -443,16 +445,100 @@ export function EditResearchPage() {
             Presentation Link
           </h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '1rem' }}>
-            Paste a Google Slides, Notion, or any public link to the full presentation.
+            Pick a file from Google Drive or paste any link (Slides, Docs, Notion, etc.).
           </p>
-          <label style={labelStyle}>URL</label>
-          <input
-            type="url"
-            value={presentationUrl}
-            onChange={(e) => setPresentationUrl(e.target.value)}
-            placeholder="https://docs.google.com/presentation/d/..."
-            style={inputStyle}
-          />
+
+          {!presentationUrl && (
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+              {(() => {
+                const pickerCfg = getGooglePickerConfig();
+                if (!pickerCfg) return null;
+                return (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const result = await openGooglePicker(pickerCfg.clientId, pickerCfg.apiKey);
+                        if (result) setPresentationUrl(result.url);
+                      } catch { /* ignore */ }
+                    }}
+                    style={{
+                      flex: 1,
+                      minWidth: 180,
+                      padding: '0.75rem 1rem',
+                      borderRadius: 'var(--radius)',
+                      border: '2px solid var(--purple-200)',
+                      background: 'var(--white)',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      color: 'var(--purple-700)',
+                    }}
+                  >
+                    <img
+                      src="https://www.gstatic.com/images/branding/product/1x/drive_2020q4_48dp.png"
+                      alt=""
+                      style={{ width: 20, height: 20 }}
+                    />
+                    Pick from Google Drive
+                  </button>
+                );
+              })()}
+              <button
+                type="button"
+                onClick={() => window.open('https://drive.google.com', '_blank')}
+                style={{
+                  flex: 1,
+                  minWidth: 160,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--gray-200)',
+                  background: 'var(--white)',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  color: 'var(--gray-600)',
+                }}
+              >
+                Open Google Drive ↗
+              </button>
+            </div>
+          )}
+
+          <label style={labelStyle}>
+            {presentationUrl ? 'URL' : 'Or paste URL directly'}
+          </label>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input
+              type="url"
+              value={presentationUrl}
+              onChange={(e) => setPresentationUrl(e.target.value)}
+              placeholder="https://docs.google.com/presentation/d/..."
+              style={{ ...inputStyle, flex: 1, marginBottom: 0 }}
+            />
+            {presentationUrl && (
+              <button
+                type="button"
+                onClick={() => setPresentationUrl('')}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--gray-300)',
+                  background: 'var(--white)',
+                  flexShrink: 0,
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </section>
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
           <button
@@ -470,7 +556,7 @@ export function EditResearchPage() {
           </button>
           <button
             type="button"
-            onClick={() => navigate(`/pesquisa/${id}`)}
+            onClick={() => navigate(`/research/${id}`)}
             style={{
               padding: '0.75rem 1.5rem',
               borderRadius: 'var(--radius)',

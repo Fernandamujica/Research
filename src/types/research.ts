@@ -61,7 +61,7 @@ export interface Research {
   date: string;
   country: Country;
   squad?: Squad;
-  researcher?: Researcher;
+  researcher?: string;
   methodology: string;
   team: string[];
   tags: string[];
@@ -75,7 +75,7 @@ export interface Research {
 }
 
 export const COUNTRY_LABELS: Record<Country, string> = {
-  brasil: 'Brasil',
+  brasil: 'Brazil',
   mexico: 'Mexico',
   usa: 'USA',
   colombia: 'Colombia',

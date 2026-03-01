@@ -26,7 +26,7 @@ try {
   console.log('Screenshot 2 saved: 2-scrolled.png');
 
   // 3. Click on a research card (View Details link or card link)
-  const cardLink = page.locator('a[href^="/pesquisa/"]').first();
+  const cardLink = page.locator('a[href^="/research/"]').first();
   const count = await cardLink.count();
   if (count > 0) {
     await cardLink.click();
