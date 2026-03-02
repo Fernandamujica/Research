@@ -1,7 +1,5 @@
-import { getGeminiApiKey } from './settings';
-
 export function getApiKey(): string {
-  return getGeminiApiKey();
+  return '';
 }
 
 export interface AiFilledFields {
@@ -68,7 +66,7 @@ Be concise and factual. For tags, use short lowercase terms. For key learnings, 
 
 async function callGeminiWithTools(pdfText: string): Promise<AiFilledFields> {
   const key = getApiKey();
-  if (!key) throw new Error('No Gemini API key configured. Go to Settings to add your key.');
+  if (!key) throw new Error('AI features are temporarily disabled. They will be re-enabled once the site is hosted on Nubank infrastructure.');
 
   if (!pdfText.trim()) {
     throw new Error('No document content to analyze. Upload a PDF or paste a document link.');

@@ -281,49 +281,6 @@ export function SettingsPage() {
         placeholder="e.g. Ethnography"
       />
 
-      {/* Gemini AI */}
-      <section className="card-shadow" style={{
-        ...sectionStyle,
-        border: settings.geminiApiKey?.trim()
-          ? '1px solid var(--gray-200)'
-          : '2px solid #fbbf24',
-        background: settings.geminiApiKey?.trim()
-          ? 'var(--white)'
-          : '#fffbeb',
-      }}>
-        <label style={labelStyle}>✨ Gemini AI</label>
-        <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '0.75rem' }}>
-          Required for AI-powered features (auto-fill from PDF, cross-geo insights).
-        </p>
-        <ol style={{ fontSize: '0.8rem', color: 'var(--gray-600)', marginBottom: '0.75rem', paddingLeft: '1.25rem', lineHeight: 1.8 }}>
-          <li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color: 'var(--purple-600)', fontWeight: 600 }}>aistudio.google.com/apikey</a></li>
-          <li>Click <strong>"Create API Key"</strong></li>
-          <li>Copy the key and paste below</li>
-          <li>Click <strong>"Save Settings"</strong></li>
-        </ol>
-        <input
-          type="password"
-          value={settings.geminiApiKey ?? ''}
-          onChange={(e) => setSettings((s) => ({ ...s, geminiApiKey: e.target.value }))}
-          placeholder="AIzaSy..."
-          style={{
-            ...inputStyle,
-            border: settings.geminiApiKey?.trim()
-              ? '1px solid #16a34a'
-              : '1px solid #fbbf24',
-          }}
-        />
-        {settings.geminiApiKey?.trim() ? (
-          <p style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '0.5rem', fontWeight: 500 }}>
-            ✓ Key configured — AI features are active
-          </p>
-        ) : (
-          <p style={{ fontSize: '0.75rem', color: '#d97706', marginTop: '0.5rem', fontWeight: 500 }}>
-            ⚠ No key set — AI features will not work
-          </p>
-        )}
-      </section>
-
       {/* Google OAuth */}
       <section className="card-shadow" style={{
         ...sectionStyle,

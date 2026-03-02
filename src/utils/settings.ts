@@ -6,7 +6,6 @@ export interface AppSettings {
   countries: { name: string; flag: string }[];
   researchers: string[];
   methodologies: string[];
-  geminiApiKey?: string;
   googleClientId?: string;
   googlePickerApiKey?: string;
 }
@@ -134,10 +133,6 @@ export function getResearchers(): string[] {
 
 export function getMethodologies(): string[] {
   return getSettings().methodologies;
-}
-
-export function getGeminiApiKey(): string {
-  return getSettings().geminiApiKey?.trim() ?? '';
 }
 
 export function getGooglePickerConfig(): { clientId: string; apiKey: string } | null {

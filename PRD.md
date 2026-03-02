@@ -139,7 +139,6 @@ A lightweight, fast web application that:
   countries: { name: string, flag: string }[]
   researchers: string[]
   methodologies: string[]
-  geminiApiKey?: string
   googleClientId?: string
 }
 ```

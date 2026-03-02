@@ -442,7 +442,7 @@ export function SubmitResearchPage() {
         if (learnings.length > 0) {
           setKeyLearnings(learnings);
         } else {
-          setAiError('No Gemini API key configured. Go to Settings to enable AI features.');
+          setAiError('AI features are temporarily disabled. They will be re-enabled on Nubank infrastructure.');
         }
       }
     } catch (err: unknown) {

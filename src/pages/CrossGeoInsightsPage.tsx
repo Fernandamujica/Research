@@ -66,7 +66,7 @@ export function CrossGeoInsightsPage() {
   const runAnalysis = useCallback(async () => {
     const key = getApiKey();
     if (!key) {
-      setError('No Gemini API key configured. Go to Settings (⚙️) to add your key.');
+      setError('AI features are temporarily disabled. They will be re-enabled once the site is hosted on Nubank infrastructure.');
       return;
     }
 
