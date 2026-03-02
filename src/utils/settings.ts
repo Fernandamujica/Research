@@ -136,10 +136,8 @@ export function getMethodologies(): string[] {
   return getSettings().methodologies;
 }
 
-const DEFAULT_GEMINI_KEY = 'AIzaSyB25CB-XA6EZ8PyvpmzHqHdeoid1LRm3i0';
-
 export function getGeminiApiKey(): string {
-  return getSettings().geminiApiKey?.trim() || DEFAULT_GEMINI_KEY;
+  return getSettings().geminiApiKey?.trim() ?? '';
 }
 
 export function getGooglePickerConfig(): { clientId: string; apiKey: string } | null {
